@@ -40,11 +40,17 @@
 #include "sceKernelInterrupt.h"
 
 // TODO: This file should not depend directly on GLES code.
+#ifndef _XBOX
 #include "../../GPU/GLES/Framebuffer.h"
 #include "../../GPU/GLES/ShaderManager.h"
 #include "../../GPU/GLES/TextureCache.h"
 #include "../../GPU/GPUState.h"
 #include "../../GPU/GPUInterface.h"
+#else
+#include "../../GPUXbox/GLES/Framebuffer.h"
+#include "../../GPUXbox/GPUState.h"
+#include "../../GPUXbox/GPUInterface.h"
+#endif
 
 #ifdef _WIN32
 // Windows defines min/max which conflict with std::min/std::max.

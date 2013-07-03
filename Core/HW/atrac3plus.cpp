@@ -1,5 +1,7 @@
 #ifdef _WIN32
+#ifndef _XBOX
 #include <Windows.h>
+#endif
 #else
 #include <dlfcn.h>
 #include <errno.h>

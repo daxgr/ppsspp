@@ -22,8 +22,13 @@
 #include "Core/HLE/scePsmf.h"
 #include "Core/HLE/sceMpeg.h"
 #include "Core/HW/MediaEngine.h"
+#ifndef _XBOX
 #include "GPU/GPUInterface.h"
 #include "GPU/GPUState.h"
+#else
+#include "GPUXbox/GPUInterface.h"
+#include "GPUXbox/GPUState.h"
+#endif
 
 #include <map>
 

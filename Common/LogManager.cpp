@@ -88,7 +88,7 @@ LogManager::LogManager()
 #if !defined(USING_GLES2) || defined(_DEBUG)
 		m_Log[i]->AddListener(m_fileLog);
 		m_Log[i]->AddListener(m_consoleLog);
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && !defined(_XBOX)
 		if (IsDebuggerPresent() && m_debuggerLog != NULL && LOG_MSC_OUTPUTDEBUG)
 			m_Log[i]->AddListener(m_debuggerLog);
 #endif

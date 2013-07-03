@@ -245,6 +245,7 @@ const std::string PSPSaveDialog::GetSelectedSaveDirName()
 
 void PSPSaveDialog::DisplayBanner(int which)
 {
+#ifndef _XBOX
 	I18NCategory *d = GetI18NCategory("Dialog");
 	PPGeDrawRect(0, 0, 480, 23, CalcFadedColor(0x65636358));
 	const char *title;
@@ -265,10 +266,12 @@ void PSPSaveDialog::DisplayBanner(int which)
 	}
 	// TODO: Draw a hexagon icon
 	PPGeDrawText(title, 30, 11, PPGE_ALIGN_VCENTER, 0.6f, CalcFadedColor(0xFFFFFFFF));
+#endif
 }
 
 void PSPSaveDialog::DisplaySaveList(bool canMove)
 {
+#ifndef _XBOX
 	int displayCount = 0;
 	for (int i = 0; i < param.GetFilenameCount(); i++)
 	{
@@ -311,10 +314,12 @@ void PSPSaveDialog::DisplaySaveList(bool canMove)
 		else if (IsButtonPressed(CTRL_DOWN) && currentSelectedSave < (param.GetFilenameCount()-1))
 			currentSelectedSave++;
 	}
+#endif
 }
 
 void PSPSaveDialog::DisplaySaveIcon()
 {
+#ifndef _XBOX
 	int textureColor = CalcFadedColor(0xFFFFFFFF);
 
 	if (param.GetFileInfo(currentSelectedSave).size == 0)
@@ -337,10 +342,13 @@ void PSPSaveDialog::DisplaySaveIcon()
 	PPGeDrawImage(x, y, w, h, 0, 0 ,1 ,1 ,tw, th, textureColor);
 	if (param.GetFileInfo(currentSelectedSave).textureData != 0)
 		PPGeSetDefaultTexture();
+#endif
 }
 
 void PSPSaveDialog::DisplaySaveDataInfo1()
 {
+
+#ifndef _XBOX
 	if (param.GetFileInfo(currentSelectedSave).size == 0) {
 		I18NCategory *d = GetI18NCategory("Dialog");
 		PPGeDrawText(d->T("New Save"), 180, 136, PPGE_ALIGN_VCENTER, FONT_SCALE, CalcFadedColor(0xFFFFFFFF));
@@ -405,10 +413,13 @@ void PSPSaveDialog::DisplaySaveDataInfo1()
 		PPGeDrawText(saveTitleTxt.c_str(), 175, 159, PPGE_ALIGN_LEFT, FONT_SCALE, CalcFadedColor(0xFFFFFFFF));
 		PPGeDrawText(saveDetailTxt.c_str(), 175, 181, PPGE_ALIGN_LEFT, 0.45f, CalcFadedColor(0xFFFFFFFF));
 	}
+#endif
 }
 
 void PSPSaveDialog::DisplaySaveDataInfo2()
 {
+
+#ifndef _XBOX
 	if (param.GetFileInfo(currentSelectedSave).size == 0) {		
 	} else {
 		char txt[1024];
@@ -457,10 +468,12 @@ void PSPSaveDialog::DisplaySaveDataInfo2()
 		std::string saveinfoTxt = txt;
 		PPGeDrawText(saveinfoTxt.c_str(), 8, 200, PPGE_ALIGN_LEFT, 0.45f, CalcFadedColor(0xFFFFFFFF));
 	}
+#endif
 }
 
 void PSPSaveDialog::DisplayMessage(std::string text, bool hasYesNo)
 {
+#ifndef _XBOX
 	const float WRAP_WIDTH = 254.0f;
 	float y = 136.0f, h;
 	int n;
@@ -504,11 +517,14 @@ void PSPSaveDialog::DisplayMessage(std::string text, bool hasYesNo)
 	float sy = 122.0f - h2, ey = 150.0f + h2;
 	PPGeDrawRect(202.0f, sy, 466.0f, sy + 1.0f, CalcFadedColor(0xFFFFFFFF));
 	PPGeDrawRect(202.0f, ey, 466.0f, ey + 1.0f, CalcFadedColor(0xFFFFFFFF));
+#endif
 }
 
 void PSPSaveDialog::DisplayTitle(std::string name)
 {
+#ifndef _XBOX
 	PPGeDrawText(name.c_str(), 10, 10, PPGE_ALIGN_LEFT, 0.45f, CalcFadedColor(0xFFFFFFFF));
+#endif
 }
 
 int PSPSaveDialog::Update()
@@ -529,6 +545,7 @@ int PSPSaveDialog::Update()
 		return 0;
 	}
 
+#ifndef _XBOX
 	// The struct may have been updated by the game.  This happens in "Where Is My Heart?"
 	// Check if it has changed, reload it.
 	// TODO: Cut down on preloading?  This rebuilds the list from scratch.
@@ -963,7 +980,7 @@ int PSPSaveDialog::Update()
 	}
 
 	lastButtons = buttons;
-
+#endif
 	if (status == SCE_UTILITY_STATUS_FINISHED)
 		Memory::Memcpy(requestAddr, &request, request.common.size);
 	

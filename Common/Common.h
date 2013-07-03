@@ -169,7 +169,7 @@ private:
 # elif defined __SSE3__
 #  define _M_SSE 0x300
 # endif
-#elif (_MSC_VER >= 1500) || __INTEL_COMPILER // Visual Studio 2008
+#elif ((_MSC_VER >= 1500) || __INTEL_COMPILER) && !defined(_XBOX) // Visual Studio 2008
 # define _M_SSE 0x402
 #endif
 
@@ -177,12 +177,22 @@ private:
 #ifdef _MSC_VER
 inline unsigned int bswap32(unsigned int x) { return _byteswap_ulong(x); }
 inline unsigned int bswap16(unsigned int x) { return _byteswap_ushort(x); }
+inline unsigned long long bswap64(unsigned int x) {return _byteswap_uint64(x);}
 #else
 // TODO: speedup
 inline unsigned int bswap32(unsigned int x) { return (x >> 24) | ((x & 0xFF0000) >> 8) | ((x & 0xFF00) << 8) | (x << 24);}
 inline unsigned short bswap16(unsigned short x) { return (x << 8) | (x >> 8); }
 #endif
 
+#ifdef PPC
+#define LE_64(x) bswap64(x)
+#define LE_32(x) bswap32(x)
+#define LE_16(x) bswap16(x)
+#else 
+#define LE_64(x) (x)
+#define LE_32(x) (x)
+#define LE_16(x) (x)
+#endif
 
 // Host communication.
 enum HOST_COMM

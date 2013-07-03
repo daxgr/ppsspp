@@ -30,7 +30,9 @@
 #include "Core/MIPS/MIPS.h"
 #include "Core/MIPS/JitCommon/JitCommon.h"
 #include "Core/System.h"
+#ifndef _XBOX
 #include "UI/OnScreenDisplay.h"
+#endif
 #include "i18n/i18n.h"
 
 namespace SaveState
@@ -226,6 +228,7 @@ namespace SaveState
 			switch (op.type)
 			{
 			case SAVESTATE_LOAD:
+#ifndef _XBOX
 				if (MIPSComp::jit)
 					MIPSComp::jit->ClearCache();
 				INFO_LOG(COMMON, "Loading state from %s", op.filename.c_str());
@@ -235,9 +238,11 @@ namespace SaveState
 				else {
 					osm.Show(s->T(reason.c_str(), "Load savestate failed"), 2.0);
 				}
+#endif
 				break;
 
 			case SAVESTATE_SAVE:
+#ifndef _XBOX
 				if (MIPSComp::jit)
 					MIPSComp::jit->ClearCache();
 				INFO_LOG(COMMON, "Saving state to %s", op.filename.c_str());
@@ -246,6 +251,7 @@ namespace SaveState
 					osm.Show(s->T("Saved State"), 2.0);
 				else
 					osm.Show(s->T("Save State Failed"), 2.0);
+#endif
 				break;
 
 			case SAVESTATE_VERIFY:

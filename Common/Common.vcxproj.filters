@@ -46,6 +46,7 @@
     <ClInclude Include="Crypto\md5.h">
       <Filter>Crypto</Filter>
     </ClInclude>
+    <ClInclude Include="Atomic_Xbox360.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp" />

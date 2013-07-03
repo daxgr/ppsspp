@@ -16,8 +16,10 @@
 // https://github.com/hrydgard/ppsspp and http://www.ppsspp.org/.
 
 #ifdef _WIN32
+#ifndef _XBOX
 #include <windows.h>
 #include <WindowsX.h>
+#endif
 #else
 #include <unistd.h>
 #endif
@@ -256,7 +258,7 @@ char *SymbolMap::GetDescription(unsigned int address)
 	//	return "";
 }
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(_XBOX)
 
 static const int defaultSymbolsAddresses[] = {
 	0x08800000, 0x08804000, 0x04000000, 0x88000000, 0x00010000

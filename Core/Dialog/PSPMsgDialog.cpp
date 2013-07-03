@@ -132,6 +132,7 @@ int PSPMsgDialog::Init(unsigned int paramAddr)
 
 void PSPMsgDialog::DisplayMessage(std::string text, bool hasYesNo)
 {
+#ifndef _XBOX
 	const float WRAP_WIDTH = 300.0f;
 	float y = 125.0f;
 	float h;
@@ -179,6 +180,7 @@ void PSPMsgDialog::DisplayMessage(std::string text, bool hasYesNo)
 	float sy = 110.0f - h2, ey = 160.0f + h2;
 	PPGeDrawRect(50.0f, sy, 420.0f, sy + 1.0f, CalcFadedColor(0xFFFFFFFF));
 	PPGeDrawRect(50.0f, ey, 420.0f, ey + 1.0f, CalcFadedColor(0xFFFFFFFF));
+#endif
 }
 
 int PSPMsgDialog::Update()
@@ -194,6 +196,7 @@ int PSPMsgDialog::Update()
 	}
 	else
 	{
+#ifndef _XBOX
 		UpdateFade();
 
 		buttons = __CtrlPeekButtons();
@@ -253,8 +256,8 @@ int PSPMsgDialog::Update()
 		EndDraw();
 
 		lastButtons = buttons;
+#endif
 	}
-
 	Memory::Memcpy(messageDialogAddr,&messageDialog,messageDialog.common.size);
 	return 0;
 }

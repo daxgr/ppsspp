@@ -24,18 +24,31 @@
 #include "Core/System.h"
 #include "Core/HLE/sceDisplay.h"
 #include "Core/HLE/sceKernelMemory.h"
+
+#ifndef _XBOX
 #include "GPU/GPUInterface.h"
 #include "GPU/GPUState.h"
 
 #include "net/http_client.h"
 #include "net/resolve.h"
 #include "net/url.h"
+#endif
 
 #include "base/buffer.h"
 
 #include <stdlib.h>
 #include <string>
 #include <cstdarg>
+
+#ifdef _XBOX
+namespace Reporting
+{
+	bool IsEnabled() { return false;}
+	void ReportMessage(const char *message, ...) {
+		
+	}
+}
+#else
 
 namespace Reporting
 {
@@ -164,6 +177,8 @@ namespace Reporting
 		// TODO: Do we care about OS version?
 #if defined(ANDROID)
 		return "Android";
+#elif defined(_XBOX)
+		return "Xbox 360";
 #elif defined(_WIN64)
 		return "Windows 64";
 #elif defined(_WIN32)
@@ -270,3 +285,4 @@ namespace Reporting
 	}
 
 }
+#endif

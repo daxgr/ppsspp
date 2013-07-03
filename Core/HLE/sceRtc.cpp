@@ -16,7 +16,9 @@
 // https://github.com/hrydgard/ppsspp and http://www.ppsspp.org/.
 
 #ifdef _WIN32
+#ifndef _XBOX
 #include <windows.h>
+#endif
 #else
 #include <sys/time.h>
 #endif

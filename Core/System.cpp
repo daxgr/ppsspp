@@ -18,7 +18,10 @@
 #ifdef _WIN32
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
+
+#ifndef _XBOX
 #include <Windows.h>
+#endif
 #endif
 
 #include "MemMap.h"
@@ -29,9 +32,12 @@
 
 #include "System.h"
 // Bad dependency
+
+#ifndef _XBOX
 #include "GPU/GLES/Framebuffer.h"
 #include "GPU/GLES/TextureCache.h"
 #include "GPU/GLES/ShaderManager.h"
+#endif
 
 #include "PSPMixer.h"
 #include "HLE/HLE.h"
@@ -152,7 +158,7 @@ CoreParameter &PSP_CoreParameter()
 
 
 void GetSysDirectories(std::string &memstickpath, std::string &flash0path) {
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(_XBOX)
 	char path_buffer[_MAX_PATH], drive[_MAX_DRIVE] ,dir[_MAX_DIR], file[_MAX_FNAME], ext[_MAX_EXT];
 	char memstickpath_buf[_MAX_PATH];
 	char flash0path_buf[_MAX_PATH];

@@ -25,8 +25,13 @@
 #include "../HW/MediaEngine.h"
 #include "Core/Config.h"
 #include "Core/Reporting.h"
+#ifndef _XBOX
 #include "GPU/GPUInterface.h"
 #include "GPU/GPUState.h"
+#else
+#include "GPUXbox/GPUInterface.h"
+#include "GPUXbox/GPUState.h"
+#endif
 
 // MPEG AVC elementary stream.
 static const int MPEG_AVC_ES_SIZE = 2048;          // MPEG packet size.

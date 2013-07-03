@@ -22,7 +22,9 @@
 #include "file/zip_read.h"
 
 #ifdef _WIN32
+#ifndef _XBOX
 #include <windows.h>
+#endif
 #include <sys/stat.h>
 #else
 #include <dirent.h>

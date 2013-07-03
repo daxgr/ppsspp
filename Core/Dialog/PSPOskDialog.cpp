@@ -25,7 +25,11 @@
 #include "Core/Config.h"
 #include "Core/Reporting.h"
 #include "Common/ChunkFile.h"
+#ifndef _XBOX
 #include "GPU/GPUState.h"
+#else
+#include "GPUXbox/GPUState.h"
+#endif
 
 #ifndef _WIN32
 #include <ctype.h>
@@ -648,6 +652,7 @@ u32 PSPOskDialog::FieldMaxLength()
 
 void PSPOskDialog::RenderKeyboard()
 {
+#ifndef _XBOX	
 	int selectedRow = selectedChar / numKeyCols[currentKeyboard];
 	int selectedCol = selectedChar % numKeyCols[currentKeyboard];
 
@@ -730,6 +735,7 @@ void PSPOskDialog::RenderKeyboard()
 				PPGeDrawText("_", keyboardLeftSide + (25.0f * col) + characterWidth / 2.0, 70.0f + (25.0f * row), PPGE_ALIGN_HCENTER, 0.6f, CalcFadedColor(0xFFFFFFFF));
 		}
 	}
+#endif
 }
 
 int PSPOskDialog::Update()
@@ -746,6 +752,7 @@ int PSPOskDialog::Update()
 	}
 	else if (status == SCE_UTILITY_STATUS_RUNNING)
 	{		
+#ifndef _XBOX
 		UpdateFade();
 
 		StartDraw();
@@ -833,6 +840,7 @@ int PSPOskDialog::Update()
 			StartFade(false);
 		}
 		EndDraw();
+#endif
 	}
 	else if (status == SCE_UTILITY_STATUS_FINISHED)
 	{

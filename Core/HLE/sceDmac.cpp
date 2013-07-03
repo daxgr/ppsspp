@@ -18,8 +18,13 @@
 #include "Globals.h"
 #include "Core/Reporting.h"
 #include "Core/HLE/HLE.h"
+#ifndef _XBOX
 #include "GPU/GPUInterface.h"
 #include "GPU/GPUState.h"
+#else
+#include "GPUXbox/GPUInterface.h"
+#include "GPUXbox/GPUState.h"
+#endif
 
 u32 sceDmacMemcpy(u32 dst, u32 src, u32 size)
 {

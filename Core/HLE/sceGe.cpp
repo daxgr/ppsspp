@@ -25,8 +25,13 @@
 #include "sceKernelMemory.h"
 #include "sceKernelThread.h"
 #include "sceKernelInterrupt.h"
-#include "../GPU/GPUState.h"
-#include "../GPU/GPUInterface.h"
+#ifndef _XBOX
+#include "GPU/GPUInterface.h"
+#include "GPU/GPUState.h"
+#else
+#include "GPUXbox/GPUInterface.h"
+#include "GPUXbox/GPUState.h"
+#endif
 
 static PspGeCallbackData ge_callback_data[16];
 static bool ge_used_callbacks[16] = {0};
@@ -329,6 +334,13 @@ u32 sceGeSetCallback(u32 structAddr)
 
 	ge_used_callbacks[cbID] = true;
 	Memory::ReadStruct(structAddr, &ge_callback_data[cbID]);
+
+#ifdef PPC
+	ge_callback_data[cbID].finish_arg = bswap32(ge_callback_data[cbID].finish_arg);
+	ge_callback_data[cbID].finish_func = bswap32(ge_callback_data[cbID].finish_func);
+	ge_callback_data[cbID].signal_arg = bswap32(ge_callback_data[cbID].signal_arg);
+	ge_callback_data[cbID].signal_func = bswap32(ge_callback_data[cbID].signal_func);
+#endif
 
 	int subIntrBase = __GeSubIntrBase(cbID);
 

@@ -17,7 +17,11 @@
 
 #if defined(_WIN32) // WIN32
 #define WIN32_LEAN_AND_MEAN
+#ifdef _XBOX
+#include <xtl.h>
+#else
 #include <Windows.h>
+#endif
 #else // POSIX
 #include <pthread.h>
 #endif

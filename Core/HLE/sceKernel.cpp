@@ -29,8 +29,13 @@
 #include "../../Core/CoreTiming.h"
 #include "../../Core/SaveState.h"
 #include "../../Core/System.h"
-#include "../../GPU/GPUInterface.h"
-#include "../../GPU/GPUState.h"
+#ifndef _XBOX
+#include "GPU/GPUInterface.h"
+#include "GPU/GPUState.h"
+#else
+#include "GPUXbox/GPUInterface.h"
+#include "GPUXbox/GPUState.h"
+#endif
 
 #include "util/random/rng.h"
 
@@ -69,8 +74,9 @@
 #include "scePspNpDrm_user.h"
 #include "sceVaudio.h"
 
+#ifndef _XBOX // Use xbox os api
 #include "../Util/PPGeDraw.h"
-
+#endif
 /*
 17: [MIPS32 R4K 00000000 ]: Loader: Type: 1 Vaddr: 00000000 Filesz: 2856816 Memsz: 2856816 
 18: [MIPS32 R4K 00000000 ]: Loader: Loadable Segment Copied to 0898dab0, size 002b9770
@@ -125,7 +131,9 @@ void __KernelInit()
 	SaveState::Init();  // Must be after IO, as it may create a directory
 
 	// "Internal" PSP libraries
+#ifndef _XBOX
 	__PPGeInit();
+#endif
 
 	kernelRunning = true;
 	INFO_LOG(HLE, "Kernel initialized.");
@@ -148,8 +156,9 @@ void __KernelShutdown()
 
 	__MpegShutdown();
 	__PsmfShutdown();
+#ifndef _XBOX
 	__PPGeShutdown();
-
+#endif
 	__CtrlShutdown();
 	__UtilityShutdown();
 	__GeShutdown();
@@ -219,7 +228,9 @@ void __KernelDoState(PointerWrap &p)
 	__UsbDoState(p);
 	__VaudioDoState(p);
 
+#ifndef _XBOX
 	__PPGeDoState(p);
+#endif
 
 	__InterruptsDoStateLate(p);
 	__KernelThreadingDoStateLate(p);

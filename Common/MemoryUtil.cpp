@@ -20,8 +20,12 @@
 #include "StringUtils.h"
 
 #ifdef _WIN32
+#ifndef _XBOX
 #include <windows.h>
 #include <psapi.h>
+#else
+#include <xtl.h>
+#endif
 #else
 #include <errno.h>
 #include <stdio.h>
@@ -222,7 +226,7 @@ void UnWriteProtectMemory(void* ptr, size_t size, bool allowExecute)
 
 std::string MemUsage()
 {
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(_XBOX)
 #pragma comment(lib, "psapi")
 	DWORD processID = GetCurrentProcessId();
 	HANDLE hProcess;

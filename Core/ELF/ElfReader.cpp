@@ -55,8 +55,8 @@ void ElfReader::LoadRelocations(Elf32_Rel *rels, int numRelocs)
 {
 	for (int r = 0; r < numRelocs; r++)
 	{
-		u32 info = rels[r].r_info;
-		u32 addr = rels[r].r_offset;
+		u32 info = LE_32(rels[r].r_info);
+		u32 addr = LE_32(rels[r].r_offset);
 
 		int type = info & 0xf;
 
@@ -104,9 +104,9 @@ void ElfReader::LoadRelocations(Elf32_Rel *rels, int numRelocs)
 				bool found = false;
 				for (int t = r + 1; t<numRelocs; t++)
 				{
-					if ((rels[t].r_info & 0xF) == R_MIPS_LO16) 
+					if ((LE_32(rels[t].r_info) & 0xF) == R_MIPS_LO16) 
 					{
-						u32 corrLoAddr = rels[t].r_offset + segmentVAddr[readwrite];
+						u32 corrLoAddr = LE_32(rels[t].r_offset) + segmentVAddr[readwrite];
 						if (log)
 						{
 							DEBUG_LOG(LOADER,"Corresponding lo found at %08x", corrLoAddr);
@@ -311,7 +311,6 @@ void ElfReader::LoadRelocations2(int rel_seg)
 
 }
 
-
 bool ElfReader::LoadInto(u32 loadAddress)
 {
 	DEBUG_LOG(LOADER,"String section: %i", header->e_shstrndx);
@@ -342,6 +341,7 @@ bool ElfReader::LoadInto(u32 loadAddress)
 	u32 totalEnd = 0;
 	for (int i = 0; i < header->e_phnum; i++) {
 		Elf32_Phdr *p = &segments[i];
+		swap_elf(p);
 		if (p->p_type == PT_LOAD) {
 			if (p->p_vaddr < totalStart)
 				totalStart = p->p_vaddr;
@@ -410,6 +410,15 @@ bool ElfReader::LoadInto(u32 loadAddress)
 	userMemory.ListBlocks();
 
 	DEBUG_LOG(LOADER,"%i sections:", header->e_shnum);
+
+#ifdef PPC
+	// Bswap sections
+	for (int i = 0; i < GetNumSections(); i++)
+	{
+		Elf32_Shdr *s = &sections[i];
+		swap_elf(s);
+	}
+#endif
 
 	for (int i = 0; i < GetNumSections(); i++)
 	{
@@ -504,6 +513,7 @@ bool ElfReader::LoadInto(u32 loadAddress)
 				int numRelocs = p->p_filesz / sizeof(Elf32_Rel);
 
 				Elf32_Rel *rels = (Elf32_Rel *)GetSegmentPtr(i);
+				//swap_elf(rels);
 				LoadRelocations(rels, numRelocs);
 			} else if (p->p_type == 0x700000A1)
 			{
@@ -544,11 +554,11 @@ bool ElfReader::LoadSymbols()
 
 		//We have a symbol table!
 		Elf32_Sym *symtab = (Elf32_Sym *)(GetSectionDataPtr(sec));
-
 		int numSymbols = sections[sec].sh_size / sizeof(Elf32_Sym);
 		
 		for (int sym = 0; sym<numSymbols; sym++)
 		{
+			swap_elf(&symtab[sym]);
 			int size = symtab[sym].st_size;
 			if (size == 0)
 				continue;

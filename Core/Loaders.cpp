@@ -70,6 +70,10 @@ EmuFileType Identify_File(std::string &filename)
 	u32 id;
 
 	size_t readSize = fread(&id, 4, 1, f);
+#ifdef PPC
+	id = bswap32(id);
+#endif
+
 	if (readSize != 1) {
 		fclose(f);
 		return FILETYPE_ERROR;

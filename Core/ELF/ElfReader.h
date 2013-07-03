@@ -48,6 +48,72 @@ typedef int SectionID;
 
 class ElfReader
 {
+protected:
+	static inline unsigned int bswap32(unsigned int x) { return _byteswap_ulong(x); }
+	static inline unsigned int bswap16(unsigned int x) { return _byteswap_ushort(x); }
+
+	static inline void swap_elf(Elf32_Ehdr * header) {
+	#ifdef PPC
+		header->e_type =		bswap16(header->e_type);
+		header->e_machine =		bswap16(header->e_machine);
+		header->e_version =		bswap32(header->e_version);
+		header->e_entry =		bswap32(header->e_entry);
+		header->e_phoff =		bswap32(header->e_phoff);
+		header->e_shoff =		bswap32(header->e_shoff);
+		header->e_flags =		bswap32(header->e_flags);
+		header->e_ehsize =		bswap16(header->e_ehsize);
+		header->e_phentsize =	bswap16(header->e_phentsize);
+		header->e_phnum =		bswap16(header->e_phnum);
+		header->e_shentsize =	bswap16(header->e_shentsize);
+		header->e_shnum =		bswap16(header->e_shnum);
+		header->e_shstrndx =	bswap16(header->e_shstrndx);
+	#endif
+	}
+	
+	static inline void swap_elf(Elf32_Shdr * header) {
+	#ifdef PPC
+		header->sh_name =		bswap32(header->sh_name);
+		header->sh_type =		bswap32(header->sh_type);
+		header->sh_flags =		bswap32(header->sh_flags);
+		header->sh_addr =		bswap32(header->sh_addr);
+		header->sh_offset =		bswap32(header->sh_offset);
+		header->sh_size =		bswap32(header->sh_size);
+		header->sh_link =		bswap32(header->sh_link);
+		header->sh_info =		bswap32(header->sh_info);
+		header->sh_addralign =	bswap32(header->sh_addralign);
+		header->sh_entsize =	bswap32(header->sh_entsize);
+	#endif
+	}
+
+	
+	static inline void swap_elf(Elf32_Phdr * header) {
+	#ifdef PPC
+		header->p_type =		bswap32(header->p_type);
+		header->p_offset =		bswap32(header->p_offset);
+		header->p_vaddr =		bswap32(header->p_vaddr);
+		header->p_paddr =		bswap32(header->p_paddr);
+		header->p_filesz =		bswap32(header->p_filesz);
+		header->p_memsz =		bswap32(header->p_memsz);
+		header->p_flags =		bswap32(header->p_flags);
+		header->p_align =		bswap32(header->p_align);
+	#endif
+	}
+
+	static inline void swap_elf(Elf32_Sym * header) {
+	#ifdef PPC
+		header->st_name =		bswap32(header->st_name);
+		header->st_value =		bswap32(header->st_value);
+		header->st_size =		bswap32(header->st_size);
+		header->st_shndx =		bswap16(header->st_shndx);
+	#endif
+	}
+
+	static inline void swap_elf(Elf32_Rel * header) {
+	#ifdef PPC
+		header->r_offset =		bswap32(header->r_offset);
+		header->r_info =		bswap32(header->r_info);
+	#endif
+	}
 public:
 	ElfReader(void *ptr) :
 		sectionOffsets(0),
@@ -58,7 +124,8 @@ public:
 		INFO_LOG(LOADER, "ElfReader: %p", ptr);
 		base = (char*)ptr;
 		base32 = (u32 *)ptr;
-		header = (Elf32_Ehdr*)ptr;
+		header = (Elf32_Ehdr*)ptr;		
+		swap_elf(header);
 		segments = (Elf32_Phdr *)(base + header->e_phoff);
 		sections = (Elf32_Shdr *)(base + header->e_shoff);
 	}

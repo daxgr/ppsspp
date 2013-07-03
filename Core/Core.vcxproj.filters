@@ -52,6 +52,9 @@
     <Filter Include="Font">
       <UniqueIdentifier>{1c79e88d-1c48-450b-8af6-f22ce7d40c66}</UniqueIdentifier>
     </Filter>
+    <Filter Include="MIPS\PPC">
+      <UniqueIdentifier>{03964b95-8735-44ca-9cf4-51c68277c95a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ELF\ElfReader.cpp">
@@ -436,6 +439,9 @@
     <ClCompile Include="HLE\sceAudiocodec.cpp">
       <Filter>HLE\Libraries</Filter>
     </ClCompile>
+    <ClCompile Include="MIPS\PPC\PpcJit.cpp">
+      <Filter>MIPS\PPC</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ELF\ElfReader.h">
@@ -807,6 +813,10 @@
     <ClInclude Include="HLE\sceAudiocodec.h">
       <Filter>HLE\Libraries</Filter>
     </ClInclude>
+    <ClInclude Include="MIPS\PPC\PpcJit.h">
+      <Filter>MIPS\PPC</Filter>
+    </ClInclude>
+    <ClInclude Include="x360_compat.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="CMakeLists.txt" />

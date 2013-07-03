@@ -113,6 +113,7 @@ void Clear()
 
 u32 Read_Instruction(u32 address)
 {
+#ifndef NO_JIT
 	u32 inst = Read_U32(address);	
 	if (MIPS_IS_EMUHACK(inst) && MIPSComp::jit)
 	{
@@ -126,6 +127,10 @@ u32 Read_Instruction(u32 address)
 	} else {
 		return inst;
 	}
+#else
+	u32 inst = Read_U32(address);
+	return inst;
+#endif
 }
 
 u32 Read_Opcode_JIT(u32 address)

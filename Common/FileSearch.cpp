@@ -21,7 +21,11 @@
 #include <sys/types.h>
 #include <dirent.h>
 #else
+#ifdef _XBOX
+#include <xtl.h>
+#else
 #include <windows.h>
+#endif
 #endif
 
 // strcasecmp

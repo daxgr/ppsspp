@@ -29,8 +29,11 @@
 // WIN32
 
 #define WIN32_LEAN_AND_MEAN
+#ifdef _XBOX
+#include <xtl.h>
+#else
 #include <Windows.h>
-
+#endif
 #if defined(_MSC_VER) && defined(_MT)
 // When linking with LIBCMT (the multithreaded C library), Microsoft recommends
 // using _beginthreadex instead of CreateThread.
@@ -203,7 +206,7 @@ public:
 	
 	static unsigned hardware_concurrency()
 	{
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(_XBOX)
 		SYSTEM_INFO sysinfo;
 		GetSystemInfo(&sysinfo);
 		return static_cast<unsigned>(sysinfo.dwNumberOfProcessors);

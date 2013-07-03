@@ -19,7 +19,11 @@
 #define _MEMARENA_H_
 
 #ifdef _WIN32
+#ifndef _XBOX
 #include <windows.h>
+#else
+#include <xtl.h>
+#endif
 #endif
 
 #ifdef __SYMBIAN32__

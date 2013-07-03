@@ -17,7 +17,11 @@
 
 #include "MediaEngine.h"
 #include "../MemMap.h"
+#ifndef _XBOX
 #include "GPU/GPUInterface.h"
+#else
+#include "GPUXbox/GPUInterface.h"
+#endif
 #include "Core/HW/atrac3plus.h"
 
 #ifdef USE_FFMPEG

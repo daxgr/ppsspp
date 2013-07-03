@@ -20,12 +20,18 @@
 #include "Core/MIPS/MIPSTables.h"
 #include "Core/MIPS/MIPSDebugInterface.h"
 #include "Core/MIPS/MIPSVFPUUtils.h"
+#ifndef PPC
 #include "Core/MIPS/JitCommon/JitBlockCache.h"
+#endif
 #include "Core/System.h"
+#ifndef _XBOX
 #include "Core/HLE/sceDisplay.h"
+#endif
 
 #if defined(ARM)
 #include "ARM/ArmJit.h"
+#elif defined (PPC)
+#include "PPC/PpcJit.h"
 #else
 #include "x86/Jit.h"
 #endif
@@ -39,29 +45,35 @@ MIPSDebugInterface *currentDebugMIPS = &debugr4k;
 
 MIPSState::MIPSState()
 {
+#ifndef PPC
 	MIPSComp::jit = 0;
+#endif
 }
 
 MIPSState::~MIPSState()
 {
+#ifndef PPC
 	if (MIPSComp::jit)
 	{
 		delete MIPSComp::jit;
 		MIPSComp::jit = 0;
 	}
+#endif
 }
 
 void MIPSState::Reset()
 {
+#ifndef PPC
 	if (MIPSComp::jit)
 	{
 		delete MIPSComp::jit;
 		MIPSComp::jit = 0;
 	}
-		
+#endif	
+#ifndef PPC
 	if (PSP_CoreParameter().cpuCore == CPU_JIT)
 		MIPSComp::jit = new MIPSComp::Jit(this);
-
+#endif
 	memset(r, 0, sizeof(r));
 	memset(f, 0, sizeof(f));
 	memset(v, 0, sizeof(v));
@@ -101,11 +113,12 @@ void MIPSState::DoState(PointerWrap &p) {
 	// Reset the jit if we're loading.
 	if (p.mode == p.MODE_READ)
 		Reset();
+#ifndef PPC
 	if (MIPSComp::jit)
 		MIPSComp::jit->DoState(p);
 	else
 		MIPSComp::Jit::DoDummyState(p);
-
+#endif
 	p.DoArray(r, sizeof(r) / sizeof(r[0]));
 	p.DoArray(f, sizeof(f) / sizeof(f[0]));
 	p.DoArray(v, sizeof(v) / sizeof(v[0]));
@@ -136,6 +149,7 @@ void MIPSState::SingleStep()
 // returns 1 if reached ticks limit
 int MIPSState::RunLoopUntil(u64 globalTicks)
 {
+#ifndef PPC
 	switch (PSP_CoreParameter().cpuCore)
 	{
 	case CPU_JIT:
@@ -145,6 +159,9 @@ int MIPSState::RunLoopUntil(u64 globalTicks)
 	case CPU_INTERPRETER:
 		return MIPSInterpret_RunUntil(globalTicks);
 	}
+#else
+	return MIPSInterpret_RunUntil(globalTicks);
+#endif
 	return 1;
 }
 

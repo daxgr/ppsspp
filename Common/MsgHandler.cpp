@@ -98,14 +98,14 @@ bool MsgAlert(bool yes_no, int Style, const char* format, ...)
 	return true;
 }
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(_XBOX)
 #include <windows.h>
 #endif
 
 // Default non library dependent panic alert
 bool DefaultMsgHandler(const char* caption, const char* text, bool yes_no, int Style)
 {
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(_XBOX)
     int STYLE = MB_ICONINFORMATION;
     if (Style == QUESTION) STYLE = MB_ICONQUESTION;
     if (Style == WARNING) STYLE = MB_ICONWARNING;

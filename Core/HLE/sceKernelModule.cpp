@@ -23,6 +23,7 @@
 #include "Core/HLE/HLETables.h"
 #include "Core/Reporting.h"
 #include "Common/FileUtil.h"
+#include "Common/Common.h"
 #include "../Host.h"
 #include "Core/MIPS/MIPS.h"
 #include "Core/MIPS/MIPSAnalyst.h"
@@ -443,12 +444,12 @@ Module *__KernelLoadELFFromPtr(const u8 *ptr, u32 loadAddress, std::string *erro
 	memset(&module->nm, 0, sizeof(module->nm));
 
 	u8 *newptr = 0;
-	if (*(u32*)ptr == 0x4543537e) { // "~SCE"
+	if (*(u32*)ptr == LE_32(0x4543537e)) { // "~SCE"
 		INFO_LOG(HLE, "~SCE module, skipping header");
 		ptr += *(u32*)(ptr + 4);
 	}
 	*magic = *(u32*)ptr;
-	if (*magic == 0x5053507e) { // "~PSP"
+	if (*magic == LE_32(0x5053507e)) { // "~PSP"
 		INFO_LOG(HLE, "Decrypting ~PSP file");
 		PSP_Header *head = (PSP_Header*)ptr;
 		const u8 *in = ptr;
@@ -480,7 +481,7 @@ Module *__KernelLoadELFFromPtr(const u8 *ptr, u32 loadAddress, std::string *erro
 	}
 
 	// DO NOT change to else if, see above.
-	if (*(u32*)ptr != 0x464c457f) {
+	if (*(u32*)ptr != LE_32(0x464c457f)) {
 		ERROR_LOG_REPORT(HLE, "Wrong magic number %08x", *(u32*)ptr);
 		*error_string = "File corrupt";
 		if (newptr)
@@ -517,12 +518,24 @@ Module *__KernelLoadELFFromPtr(const u8 *ptr, u32 loadAddress, std::string *erro
 
 	SectionID sceModuleInfoSection = reader.GetSectionByName(".rodata.sceModuleInfo");
 	PspModuleInfo *modinfo;
+	u32 add = reader.GetSectionAddr(sceModuleInfoSection);
 	if (sceModuleInfoSection != -1)
-		modinfo = (PspModuleInfo *)Memory::GetPointer(reader.GetSectionAddr(sceModuleInfoSection));
+		modinfo = (PspModuleInfo *)Memory::GetPointer(add);
 	else
 		modinfo = (PspModuleInfo *)Memory::GetPointer(reader.GetSegmentVaddr(0) + (reader.GetSegmentPaddr(0) & 0x7FFFFFFF) - reader.GetSegmentOffset(0));
 
-	module->nm.gp_value = modinfo->gp;
+#if 0
+	// Bswap sceModuleInfoSection
+	modinfo->moduleAttrs = bswap32(modinfo->moduleAttrs);
+	modinfo->moduleVersion = bswap32(modinfo->moduleVersion);
+	modinfo->gp = bswap32(modinfo->gp);
+	modinfo->libent = bswap32(modinfo->libent);
+	modinfo->libentend = bswap32(modinfo->libentend);
+	modinfo->libstub = bswap32(modinfo->libstub);
+	modinfo->libstubend = bswap32(modinfo->libstubend);
+#endif
+
+	module->nm.gp_value = LE_32(modinfo->gp);
 	strncpy(module->nm.name, modinfo->name, 28);
 
 	// Check for module blacklist - we don't allow games to load these modules from disc
@@ -569,7 +582,7 @@ Module *__KernelLoadELFFromPtr(const u8 *ptr, u32 loadAddress, std::string *erro
 		dontadd = true;
 	}
 
-	INFO_LOG(LOADER,"Module %s: %08x %08x %08x", modinfo->name, modinfo->gp, modinfo->libent,modinfo->libstub);
+	INFO_LOG(LOADER,"Module %s: %08x %08x %08x", modinfo->name, LE_32(modinfo->gp), LE_32(modinfo->libent), LE_32(modinfo->libstub));
 
 	struct PspLibStubEntry
 	{
@@ -602,23 +615,36 @@ Module *__KernelLoadELFFromPtr(const u8 *ptr, u32 loadAddress, std::string *erro
 
 	DEBUG_LOG(LOADER,"===================================================");
 
-	u32 *entryPos = (u32 *)Memory::GetPointer(modinfo->libstub);
-	u32 *entryEnd = (u32 *)Memory::GetPointer(modinfo->libstubend);
+	u32 *entryPos = (u32 *)Memory::GetPointer(LE_32(modinfo->libstub));
+	u32 *entryEnd = (u32 *)Memory::GetPointer(LE_32(modinfo->libstubend));
 
 	bool needReport = false;
 	while (entryPos < entryEnd) {
 		PspLibStubEntry *entry = (PspLibStubEntry *)entryPos;
+#if 0
+		PspLibStubEntry t;
+		// Bswap PspLibStubEntry
+		t.name = bswap32(entry->name);
+		t.version = bswap16(entry->version);
+		t.flags = bswap16(entry->flags);
+		t.numFuncs = bswap16(entry->numFuncs);
+		t.nidData = bswap32(entry->nidData);
+		t.firstSymAddr = bswap32(entry->firstSymAddr);
+		t.varData = bswap32(entry->varData);
+		t.extra = bswap32(entry->extra);
+		entry = &t;
+#endif
 		entryPos += entry->size;
 
 		const char *modulename;
-		if (Memory::IsValidAddress(entry->name)) {
-			modulename = Memory::GetCharPointer(entry->name);
+		if (Memory::IsValidAddress(LE_32(entry->name))) {
+			modulename = Memory::GetCharPointer(LE_32(entry->name));
 		} else {
 			modulename = "(invalidname)";
 			needReport = true;
 		}
 
-		DEBUG_LOG(LOADER, "Importing Module %s, stubs at %08x", modulename, entry->firstSymAddr);
+		DEBUG_LOG(LOADER, "Importing Module %s, stubs at %08x", modulename, LE_32(entry->firstSymAddr));
 		if (entry->size != 5 && entry->size != 6) {
 			WARN_LOG_REPORT(LOADER, "Unexpected module entry size %d", entry->size);
 			needReport = true;
@@ -626,44 +652,44 @@ Module *__KernelLoadELFFromPtr(const u8 *ptr, u32 loadAddress, std::string *erro
 
 		// If nidData is 0, only variables are being imported.
 		if (entry->nidData != 0) {
-			if (!Memory::IsValidAddress(entry->nidData)) {
-				ERROR_LOG_REPORT(LOADER, "Crazy nidData address %08x, skipping entire module", entry->nidData);
+			if (!Memory::IsValidAddress(LE_32(entry->nidData))) {
+				ERROR_LOG_REPORT(LOADER, "Crazy nidData address %08x, skipping entire module", LE_32(entry->nidData));
 				needReport = true;
 				continue;
 			}
 
-			u32 *nidDataPtr = (u32 *)Memory::GetPointer(entry->nidData);
-			for (int i = 0; i < entry->numFuncs; ++i) {
-				u32 addrToWriteSyscall = entry->firstSymAddr + i * 8;
-				DEBUG_LOG(LOADER, "%s : %08x", GetFuncName(modulename, nidDataPtr[i]), addrToWriteSyscall);
+			u32 *nidDataPtr = (u32 *)Memory::GetPointer(LE_32(entry->nidData));
+			for (int i = 0; i < LE_16(entry->numFuncs); ++i) {
+				u32 addrToWriteSyscall = LE_32(entry->firstSymAddr) + i * 8;
+				DEBUG_LOG(LOADER, "%s : %08x", GetFuncName(modulename, LE_32(nidDataPtr[i])), addrToWriteSyscall);
 				//write a syscall here
 				if (Memory::IsValidAddress(addrToWriteSyscall)) {
-					WriteSyscall(modulename, nidDataPtr[i], addrToWriteSyscall);
+					WriteSyscall(modulename, LE_32(nidDataPtr[i]), addrToWriteSyscall);
 				} else {
-					WARN_LOG_REPORT(LOADER, "Invalid address for syscall stub %s %08x", modulename, nidDataPtr[i]);
+					WARN_LOG_REPORT(LOADER, "Invalid address for syscall stub %s %08x", modulename, LE_32(nidDataPtr[i]));
 				}
 
 				if (!dontadd) {
 					char temp[256];
-					sprintf(temp,"zz_%s", GetFuncName(modulename, nidDataPtr[i]));
+					sprintf(temp,"zz_%s", GetFuncName(modulename, LE_32(nidDataPtr[i])));
 					symbolMap.AddSymbol(temp, addrToWriteSyscall, 8, ST_FUNCTION);
 				}
 			}
-		} else if (entry->numFuncs > 0) {
-			WARN_LOG_REPORT(LOADER, "Module entry with %d imports but no valid address", entry->numFuncs);
+		} else if (LE_16(entry->numFuncs) > 0) {
+			WARN_LOG_REPORT(LOADER, "Module entry with %d imports but no valid address", LE_16(entry->numFuncs));
 			needReport = true;
 		}
 
-		if (entry->varData != 0) {
-			if (!Memory::IsValidAddress(entry->varData)) {
-				ERROR_LOG_REPORT(LOADER, "Crazy varData address %08x, skipping rest of module", entry->varData);
+		if (LE_32(entry->varData) != 0) {
+			if (!Memory::IsValidAddress(LE_32(entry->varData))) {
+				ERROR_LOG_REPORT(LOADER, "Crazy varData address %08x, skipping rest of module", LE_32(entry->varData));
 				needReport = true;
 				continue;
 			}
 
 			for (int i = 0; i < entry->numVars; ++i) {
-				u32 varRefsPtr = Memory::Read_U32(entry->varData + i * 8);
-				u32 nid = Memory::Read_U32(entry->varData + i * 8 + 4);
+				u32 varRefsPtr = Memory::Read_U32(LE_32(entry->varData) + i * 8);
+				u32 nid = Memory::Read_U32(LE_32(entry->varData) + i * 8 + 4);
 				if (!Memory::IsValidAddress(varRefsPtr)) {
 					WARN_LOG_REPORT(LOADER, "Bad relocation list address for nid %08x in %s", nid, modulename);
 					continue;
@@ -671,7 +697,7 @@ Module *__KernelLoadELFFromPtr(const u8 *ptr, u32 loadAddress, std::string *erro
 
 				u32 *varRef = (u32 *)Memory::GetPointer(varRefsPtr);
 				for (; *varRef != 0; ++varRef) {
-					ImportVarSymbol(modulename, nid, (*varRef & 0x03FFFFFF) << 2, *varRef >> 26);
+					ImportVarSymbol(modulename, nid, (LE_32(*varRef) & 0x03FFFFFF) << 2, LE_32(*varRef) >> 26);
 				}
 			}
 		} else if (entry->numVars > 0) {
@@ -718,8 +744,8 @@ Module *__KernelLoadELFFromPtr(const u8 *ptr, u32 loadAddress, std::string *erro
 		u32 resident;
 	};
 
-	u32 *entPos = (u32 *)Memory::GetPointer(modinfo->libent);
-	u32 *entEnd = (u32 *)Memory::GetPointer(modinfo->libentend);
+	u32 *entPos = (u32 *)Memory::GetPointer(LE_32(modinfo->libent));
+	u32 *entEnd = (u32 *)Memory::GetPointer(LE_32(modinfo->libentend));
 	for (int m = 0; entPos < entEnd; ++m) {
 		PspLibEntEntry *ent = (PspLibEntEntry *)entPos;
 		entPos += ent->size;
@@ -738,21 +764,21 @@ Module *__KernelLoadELFFromPtr(const u8 *ptr, u32 loadAddress, std::string *erro
 			name = "invalid?";
 		}
 
-		INFO_LOG(HLE, "Exporting ent %d named %s, %d funcs, %d vars, resident %08x", m, name, ent->fcount, ent->vcount, ent->resident);
+		INFO_LOG(HLE, "Exporting ent %d named %s, %d funcs, %d vars, resident %08x", m, name, LE_16(ent->fcount), ent->vcount, LE_32(ent->resident));
 
-		if (!Memory::IsValidAddress(ent->resident)) {
-			if (ent->fcount + ent->vcount > 0) {
-				WARN_LOG_REPORT(LOADER, "Invalid export resident address %08x", ent->resident);
+		if (!Memory::IsValidAddress(LE_32(ent->resident))) {
+			if (LE_16(ent->fcount) + ent->vcount > 0) {
+				WARN_LOG_REPORT(LOADER, "Invalid export resident address %08x", LE_32(ent->resident));
 			}
 			continue;
 		}
 
-		u32 *residentPtr = (u32 *)Memory::GetPointer(ent->resident);
-		u32 *exportPtr = residentPtr + ent->fcount + ent->vcount;
+		u32 *residentPtr = (u32 *)Memory::GetPointer(LE_32(ent->resident));
+		u32 *exportPtr = residentPtr + LE_16(ent->fcount) + ent->vcount;
 
 		for (u32 j = 0; j < ent->fcount; j++) {
-			u32 nid = residentPtr[j];
-			u32 exportAddr = exportPtr[j];
+			u32 nid = LE_32(residentPtr[j]);
+			u32 exportAddr = LE_32(exportPtr[j]);
 
 			switch (nid) {
 			case NID_MODULE_START:
@@ -776,8 +802,8 @@ Module *__KernelLoadELFFromPtr(const u8 *ptr, u32 loadAddress, std::string *erro
 		}
 
 		for (u32 j = 0; j < ent->vcount; j++) {
-			u32 nid = residentPtr[ent->fcount + j];
-			u32 exportAddr = exportPtr[ent->fcount + j];
+			u32 nid = LE_32(residentPtr[LE_16(ent->fcount) + j]);
+			u32 exportAddr = LE_32(exportPtr[LE_16(ent->fcount) + j]);
 
 			int size;
 			switch (nid) {

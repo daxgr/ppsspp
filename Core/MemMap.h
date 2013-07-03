@@ -41,6 +41,9 @@
 //#define SAFE_MEMORY
 #endif
 
+#ifdef _XBOX
+#define SAFE_MEMORY
+#endif
 
 // Global declarations
 class PointerWrap;
@@ -109,7 +112,7 @@ enum
 	SCRATCHPAD_SIZE = 0x4000,
 	SCRATCHPAD_MASK = SCRATCHPAD_SIZE - 1,
 
-#if defined(_M_IX86) || defined(_M_ARM32)
+#if defined(_M_IX86) || defined(_M_ARM32) || defined (_XBOX)
   // This wraparound should work for PSP too.
 	MEMVIEW32_MASK  = 0x3FFFFFFF,
 #endif
@@ -153,7 +156,7 @@ void WriteUnchecked_U32(const u32 _Data, const u32 _Address);
 #else
 
 inline u32 ReadUnchecked_U32(const u32 address) {
-#if defined(_M_IX86) || defined(_M_ARM32)
+#if defined(_M_IX86) || defined(_M_ARM32) || defined (_XBOX)
   return (*(u32 *)(base + (address & MEMVIEW32_MASK)));
 #else
   return (*(u32 *)(base + address));
@@ -161,7 +164,7 @@ inline u32 ReadUnchecked_U32(const u32 address) {
 }
 
 inline u16 ReadUnchecked_U16(const u32 address) {
-#if defined(_M_IX86) || defined(_M_ARM32)
+#if defined(_M_IX86) || defined(_M_ARM32) || defined (_XBOX)
 	return (*(u16 *)(base + (address & MEMVIEW32_MASK)));
 #else
 	return (*(u16 *)(base + address));
@@ -169,7 +172,7 @@ inline u16 ReadUnchecked_U16(const u32 address) {
 }
 
 inline u8 ReadUnchecked_U8(const u32 address) {
-#if defined(_M_IX86) || defined(_M_ARM32)
+#if defined(_M_IX86) || defined(_M_ARM32) || defined (_XBOX)
 	return (*(u8 *)(base + (address & MEMVIEW32_MASK))); 
 #else
 	return (*(u8 *)(base + address));
@@ -177,7 +180,7 @@ inline u8 ReadUnchecked_U8(const u32 address) {
 }
 
 inline void WriteUnchecked_U32(u32 data, u32 address) {
-#if defined(_M_IX86) || defined(_M_ARM32)
+#if defined(_M_IX86) || defined(_M_ARM32) || defined (_XBOX)
 	(*(u32 *)(base + (address & MEMVIEW32_MASK))) = data;
 #else
 	(*(u32 *)(base + address)) = data;
@@ -185,7 +188,7 @@ inline void WriteUnchecked_U32(u32 data, u32 address) {
 }
 
 inline void WriteUnchecked_U16(u16 data, u32 address) {
-#if defined(_M_IX86) || defined(_M_ARM32)
+#if defined(_M_IX86) || defined(_M_ARM32) || defined (_XBOX)
 	(*(u16 *)(base + (address & MEMVIEW32_MASK))) = data;
 #else
 	(*(u16 *)(base + address)) = data;
@@ -193,7 +196,7 @@ inline void WriteUnchecked_U16(u16 data, u32 address) {
 }
 
 inline void WriteUnchecked_U8(u8 data, u32 address) {
-#if defined(_M_IX86) || defined(_M_ARM32)
+#if defined(_M_IX86) || defined(_M_ARM32) || defined (_XBOX)
 	(*(u8 *)(base + (address & MEMVIEW32_MASK))) = data;
 #else
 	(*(u8 *)(base + address)) = data;

@@ -45,13 +45,17 @@ PSPDialog::DialogStatus PSPDialog::GetStatus()
 
 void PSPDialog::StartDraw()
 {
+#ifndef _XBOX
 	PPGeBegin();
 	PPGeDrawRect(0, 0, 480, 272, CalcFadedColor(0x80000000));
+#endif
 }
 
 void PSPDialog::EndDraw()
 {
+#ifndef _XBOX
 	PPGeEnd();
+#endif
 }
 
 int PSPDialog::Shutdown(bool force)
@@ -132,6 +136,7 @@ bool PSPDialog::IsButtonPressed(int checkButton)
 
 void PSPDialog::DisplayButtons(int flags)
 {
+#ifndef _XBOX
 	I18NCategory *d = GetI18NCategory("Dialog");
 	float x1 = 183.5f, x2 = 261.5f;
 	if (GetCommonParam()->buttonSwap == 1) {
@@ -148,4 +153,5 @@ void PSPDialog::DisplayButtons(int flags)
 		PPGeDrawText(d->T("Back"), x1 + 14.5f, 250, PPGE_ALIGN_LEFT, FONT_SCALE, CalcFadedColor(0xFFFFFFFF));
 		PPGeDrawImage(cancelButtonImg, x1, 256, 11.5f, 11.5f, 0, CalcFadedColor(0xFFFFFFFF));
 	}
+#endif
 }

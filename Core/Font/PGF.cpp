@@ -25,8 +25,13 @@
 #include "Core/Font/PGF.h"
 #include "Core/HLE/HLE.h"
 
+#ifndef _XBOX
 #include "GPU/GPUInterface.h"
 #include "GPU/GPUState.h"
+#else
+#include "GPUXbox/GPUInterface.h"
+#include "GPUXbox/GPUState.h"
+#endif
 
 // These fonts, created by ttf2pgf, don't have complete glyph info and need to be identified.
 static bool isJPCSPFont(const char *fontName) {

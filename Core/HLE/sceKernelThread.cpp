@@ -921,8 +921,16 @@ void __KernelThreadingInit()
 	readyCallbacksCount = 0;
 	idleThreadHackAddr = kernelMemory.Alloc(blockSize, false, "threadrethack");
 
+#ifndef PPC
 	Memory::Memcpy(idleThreadHackAddr, idleThreadCode, sizeof(idleThreadCode));
-
+#else
+	// bswap idle code
+	u32 dest = idleThreadHackAddr;
+	for (size_t i = 0; i < ARRAY_SIZE(idleThreadCode); ++i) {
+		Memory::WriteUnchecked_U32(idleThreadCode[i], dest);
+		dest += 4;
+	}
+#endif
 	u32 pos = idleThreadHackAddr + sizeof(idleThreadCode);
 	for (size_t i = 0; i < ARRAY_SIZE(threadHacks); ++i) {
 		__KernelWriteFakeSysCall(threadHacks[i].nid, threadHacks[i].addr, pos);
