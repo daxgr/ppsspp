@@ -1,0 +1,101 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="native%28small%29">
+      <UniqueIdentifier>{211d765b-1f9a-485e-ae7b-1bffd0b117ba}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\Compare.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Headless.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WindowsHeadlessHost.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\native\file\ini_file.cpp">
+      <Filter>native%28small%29</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\native\file\zip_read.cpp">
+      <Filter>native%28small%29</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\native\i18n\i18n.cpp">
+      <Filter>native%28small%29</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\native\base\stringutil.cpp">
+      <Filter>native%28small%29</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\native\base\timeutil.cpp">
+      <Filter>native%28small%29</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\native\base\buffer.cpp">
+      <Filter>native%28small%29</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\native\file\fd_util.cpp">
+      <Filter>native%28small%29</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\native\file\file_util.cpp">
+      <Filter>native%28small%29</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\native\image\png_load.cpp">
+      <Filter>native%28small%29</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\native\ext\stb_image\stb_image.c">
+      <Filter>native%28small%29</Filter>
+    </ClCompile>
+    <ClCompile Include="..\display_xbox.cpp">
+      <Filter>native%28small%29</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\Compare.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\StubHost.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\WindowsHeadlessHost.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\native\file\ini_file.h">
+      <Filter>native%28small%29</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\native\file\zip_read.h">
+      <Filter>native%28small%29</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\native\i18n\i18n.h">
+      <Filter>native%28small%29</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\native\base\stringutil.h">
+      <Filter>native%28small%29</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\native\base\timeutil.h">
+      <Filter>native%28small%29</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\native\base\buffer.h">
+      <Filter>native%28small%29</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\native\file\fd_util.h">
+      <Filter>native%28small%29</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\native\file\file_util.h">
+      <Filter>native%28small%29</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\native\image\png_load.h">
+      <Filter>native%28small%29</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\native\ext\stb_image\stb_image.h">
+      <Filter>native%28small%29</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
