@@ -25,7 +25,7 @@
 #include "VertexDecoder.h"
 #include "TransformPipeline.h"
 #include "TextureCache.h"
-#include "gfx_es2/fbo.h"
+#include "helper/fbo.h"
 
 class ShaderManager;
 class LinkedShader;

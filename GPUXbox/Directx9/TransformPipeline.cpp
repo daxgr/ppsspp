@@ -25,12 +25,12 @@
 #include "Core/Config.h"
 #include "Core/CoreTiming.h"
 
-#include "native/gfx_es2/gl_state.h"
+#include "helper/dx_state.h"
 #include "native/ext/cityhash/city.h"
 
-#include "GPU/Math3D.h"
-#include "GPU/GPUState.h"
-#include "GPU/ge_constants.h"
+#include "GPUXbox/Math3D.h"
+#include "GPUXbox/GPUState.h"
+#include "GPUXbox/ge_constants.h"
 
 #include "StateMapping.h"
 #include "TextureCache.h"
@@ -39,14 +39,14 @@
 #include "ShaderManager.h"
 #include "DisplayListInterpreter.h"
 
-const GLuint glprim[8] = {
-	GL_POINTS,
-	GL_LINES,
-	GL_LINE_STRIP,
-	GL_TRIANGLES,
-	GL_TRIANGLE_STRIP,
-	GL_TRIANGLE_FAN,
-	GL_TRIANGLES,	 // With OpenGL ES we have to expand sprites into triangles, tripling the data instead of doubling. sigh. OpenGL ES, Y U NO SUPPORT GL_QUADS?
+const D3DPRIMITIVETYPE glprim[8] = {
+	D3DPT_POINTLIST,
+	D3DPT_LINELIST,
+	D3DPT_LINESTRIP,
+	D3DPT_TRIANGLELIST,
+	D3DPT_TRIANGLESTRIP,
+	D3DPT_TRIANGLEFAN,
+	D3DPT_TRIANGLELIST,	 // With OpenGL ES we have to expand sprites into triangles, tripling the data instead of doubling. sigh. OpenGL ES, Y U NO SUPPORT GL_QUADS?
 };
 
 enum {
@@ -76,11 +76,11 @@ TransformDrawEngine::TransformDrawEngine()
 	decIndex = (u16 *)AllocateMemoryPages(DECODED_INDEX_BUFFER_SIZE);
 	transformed = (TransformedVertex *)AllocateMemoryPages(TRANSFORMED_VERTEX_BUFFER_SIZE);
 	transformedExpanded = (TransformedVertex *)AllocateMemoryPages(3 * TRANSFORMED_VERTEX_BUFFER_SIZE);
-	memset(vbo_, 0, sizeof(vbo_));
-	memset(ebo_, 0, sizeof(ebo_));
+//	memset(vbo_, 0, sizeof(vbo_));
+//	memset(ebo_, 0, sizeof(ebo_));
 	indexGen.Setup(decIndex);
 	InitDeviceObjects();
-	register_gl_resource_holder(this);
+	//register_gl_resource_holder(this);
 }
 
 TransformDrawEngine::~TransformDrawEngine() {
@@ -89,29 +89,42 @@ TransformDrawEngine::~TransformDrawEngine() {
 	FreeMemoryPages(decIndex, DECODED_INDEX_BUFFER_SIZE);
 	FreeMemoryPages(transformed, TRANSFORMED_VERTEX_BUFFER_SIZE);
 	FreeMemoryPages(transformedExpanded, 3 * TRANSFORMED_VERTEX_BUFFER_SIZE);
-	unregister_gl_resource_holder(this);
+	//unregister_gl_resource_holder(this);
 	for (auto iter = decoderMap_.begin(); iter != decoderMap_.end(); iter++) {
 		delete iter->second;
 	}
 }
 
 void TransformDrawEngine::InitDeviceObjects() {
+	for(size_t i = 0;i < NUM_VBOS; i++) {
+		pD3Ddevice->CreateVertexBuffer(DECODED_VERTEX_BUFFER_SIZE, NULL, NULL, D3DPOOL_DEFAULT, &vbo_[i], NULL);
+		pD3Ddevice->CreateIndexBuffer(DECODED_INDEX_BUFFER_SIZE, NULL, D3DFMT_INDEX16, D3DPOOL_DEFAULT, &ebo_[i], NULL);
+	}
+	/*
+
 	if (!vbo_[0]) {
 		glGenBuffers(NUM_VBOS, &vbo_[0]);
 		glGenBuffers(NUM_VBOS, &ebo_[0]);
 	} else {
 		ERROR_LOG(G3D, "Device objects already initialized!");
 	}
+	*/
 }
 
 void TransformDrawEngine::DestroyDeviceObjects() {
+	/*
 	glDeleteBuffers(NUM_VBOS, &vbo_[0]);
 	glDeleteBuffers(NUM_VBOS, &ebo_[0]);
+	*/
+	for(size_t i = 0;i < NUM_VBOS; i++) {
+		vbo_[i]->Release();
+		ebo_[i]->Release();
+	}
 	memset(vbo_, 0, sizeof(vbo_));
 	memset(ebo_, 0, sizeof(ebo_));
 	ClearTrackedVertexArrays();
 }
-
+/*
 void TransformDrawEngine::GLLost() {
 	// The objects have already been deleted.
 	memset(vbo_, 0, sizeof(vbo_));
@@ -119,7 +132,7 @@ void TransformDrawEngine::GLLost() {
 	ClearTrackedVertexArrays();
 	InitDeviceObjects();
 }
-
+*/
 // Just to get something on the screen, we'll just not subdivide correctly.
 void TransformDrawEngine::DrawBezier(int ucount, int vcount) {
 	u16 indices[3 * 3 * 6];
@@ -368,6 +381,7 @@ struct GlTypeInfo {
 	u8 normalized;
 };
 
+#if 0
 static const GlTypeInfo GLComp[] = {
 	{0}, // 	DEC_NONE,
 	{GL_FLOAT, 1, GL_FALSE}, // 	DEC_FLOAT_1,
@@ -406,6 +420,7 @@ static void SetupDecFmtForDraw(LinkedShader *program, const DecVtxFormat &decFmt
 	VertexAttribSetup(program->a_position, decFmt.posfmt, decFmt.stride, vertexData + decFmt.posoff);
 }
 
+#endif
 // The verts are in the order:  BR BL TL TR
 static void SwapUVs(TransformedVertex &a, TransformedVertex &b) {
 	float tempu = a.u;
@@ -743,17 +758,17 @@ void TransformDrawEngine::SoftwareTransformAndDraw(
 			((clearColor & 0xFF0000) >> 16) / 255.0f,
 			((clearColor & 0xFF000000) >> 24) / 255.0f,
 		};
-		int target = 0;
-		if ((gstate.clearmode >> 8) & 3) target |= GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT;
-		if ((gstate.clearmode >> 10) & 1) target |= GL_DEPTH_BUFFER_BIT;
+		DWORD target = 0;
+		if ((gstate.clearmode >> 8) & 3) target |= D3DCLEAR_TARGET | D3DCLEAR_STENCIL;
+		if ((gstate.clearmode >> 10) & 1) target |= D3DCLEAR_ZBUFFER;
 
 		bool colorMask = (gstate.clearmode >> 8) & 1;
 		bool alphaMask = (gstate.clearmode >> 9) & 1;
-		glstate.colorMask.set(colorMask, colorMask, colorMask, alphaMask);
-		glstate.stencilTest.set(false);
-		glstate.scissorTest.set(false);
+		dxstate.colorMask.set(colorMask, colorMask, colorMask, alphaMask);
+		dxstate.stencilTest.set(false);
+		dxstate.scissorTest.set(false);
 		bool depthMask = (gstate.clearmode >> 10) & 1;
-
+		/*
 		glClearColor(col[0], col[1], col[2], col[3]);
 #ifdef USING_GLES2
 		glClearDepthf(clearDepth);
@@ -762,6 +777,8 @@ void TransformDrawEngine::SoftwareTransformAndDraw(
 #endif
 		glClearStencil(0);  // TODO - take from alpha?
 		glClear(target);
+		*/
+		pD3Ddevice->Clear(0, NULL, target, clearColor, clearDepth, 0);
 		return;
 	}
 
@@ -842,6 +859,7 @@ void TransformDrawEngine::SoftwareTransformAndDraw(
 	const int vertexSize = sizeof(transformed[0]);
 
 	bool useVBO = g_Config.bUseVBO;
+#ifdef USE_VBO
 	if (useVBO) {
 		//char title[64];
 		//sprintf(title, "upload %i verts for sw", indexGen.VertexCount());
@@ -849,27 +867,37 @@ void TransformDrawEngine::SoftwareTransformAndDraw(
 		glBindBuffer(GL_ARRAY_BUFFER, vbo_[curVbo_]);
 		glBufferData(GL_ARRAY_BUFFER, vertexSize * numTrans, drawBuffer, GL_STREAM_DRAW);
 		drawBuffer = 0;  // so that the calls use offsets instead.
-	}		
+	}
+#endif
 	bool doTextureProjection = gstate.getUVGenMode() == 1;
+#if 0
 	glVertexAttribPointer(program->a_position, 4, GL_FLOAT, GL_FALSE, vertexSize, drawBuffer);
 	if (program->a_texcoord != -1) glVertexAttribPointer(program->a_texcoord, doTextureProjection ? 3 : 2, GL_FLOAT, GL_FALSE, vertexSize, ((uint8_t*)drawBuffer) + 4 * 4);
 	if (program->a_color0 != -1) glVertexAttribPointer(program->a_color0, 4, GL_UNSIGNED_BYTE, GL_TRUE, vertexSize, ((uint8_t*)drawBuffer) + 7 * 4);
 	if (program->a_color1 != -1) glVertexAttribPointer(program->a_color1, 3, GL_UNSIGNED_BYTE, GL_TRUE, vertexSize, ((uint8_t*)drawBuffer) + 8 * 4);
+#endif
 	if (drawIndexed) {
+#ifdef USE_VBO
 		if (useVBO) {
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo_[curVbo_]);
 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(short) * numTrans, inds, GL_STREAM_DRAW);
 			inds = 0;
 		}
-		glDrawElements(glprim[prim], numTrans, GL_UNSIGNED_SHORT, inds);
+#endif
+		//glDrawElements(glprim[prim], numTrans, GL_UNSIGNED_SHORT, inds);
+		pD3Ddevice->DrawIndexedPrimitiveUP(glprim[prim], 0, vertexCount, numTrans, inds, D3DFMT_INDEX16, drawBuffer, sizeof(TransformedVertex));
+#ifdef USE_VBO
 		if (useVBO) {
 			// Attempt to orphan the buffer we used so the GPU can alloc a new one.
 			// glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(short) * numTrans, 0, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 		}
+#endif
 	} else {
-		glDrawArrays(glprim[prim], 0, numTrans);
+		//glDrawArrays(glprim[prim], 0, numTrans);
+		pD3Ddevice->DrawPrimitiveUP(glprim[prim], numTrans, drawBuffer, sizeof(TransformedVertex));
 	}
+#ifdef USE_VBO
 	if (useVBO) {
 		// Attempt to orphan the buffer we used so the GPU can alloc a new one.
 		// glBufferData(GL_ARRAY_BUFFER, vertexSize * numTrans, 0, GL_DYNAMIC_DRAW);
@@ -878,6 +906,7 @@ void TransformDrawEngine::SoftwareTransformAndDraw(
 		if (curVbo_ == NUM_VBOS)
 			curVbo_ = 0;
 	}
+#endif
 }
 
 VertexDecoder *TransformDrawEngine::GetVertexDecoder(u32 vtype) {
@@ -1093,10 +1122,12 @@ void TransformDrawEngine::DecimateTrackedVertexArrays() {
 }
 
 VertexArrayInfo::~VertexArrayInfo() {
-	if (vbo)
-		glDeleteBuffers(1, &vbo);
-	if (ebo)
-		glDeleteBuffers(1, &ebo);
+	if (vbo) {
+		vbo->Release();
+	}
+	if (ebo) {
+		ebo->Release();
+	}
 }
 
 void TransformDrawEngine::Flush() {
@@ -1114,7 +1145,7 @@ void TransformDrawEngine::Flush() {
 	ApplyDrawState(prim);
 
 	LinkedShader *program = shaderManager_->ApplyShader(prim);
-
+#if 0
 	if (program->useHWTransform_) {
 		GLuint vbo = 0, ebo = 0;
 		int vertexCount = 0;
@@ -1293,7 +1324,9 @@ rotateVBO:
 		}
 		if (vbo)
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
-	} else {
+	} else 
+#endif 
+	{
 		DecodeVerts();
 		gpuStats.numUncachedVertsDrawn += indexGen.VertexCount();
 		prim = indexGen.Prim();

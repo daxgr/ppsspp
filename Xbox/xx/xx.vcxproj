@@ -114,6 +114,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ProgramDatabaseFile>$(OutDir)$(ProjectName).pdb</ProgramDatabaseFile>
       <AdditionalDependencies>xapilibd.lib;d3d9d.lib;d3dx9d.lib;xgraphicsd.lib;xboxkrnl.lib;xnetd.lib;xaudiod2.lib;xactd3.lib;x3daudiod.lib;xmcored.lib;xbdm.lib;vcompd.lib</AdditionalDependencies>
+      <AdditionalOptions>/BASE:0x92000000 %(AdditionalOptions)</AdditionalOptions>
+      <StackCommitSize>524288</StackCommitSize>
     </Link>
     <Deploy>
       <DeploymentType>CopyToHardDrive</DeploymentType>
@@ -255,6 +257,7 @@
     <ClCompile Include="..\..\native\base\buffer.cpp" />
     <ClCompile Include="..\..\native\base\stringutil.cpp" />
     <ClCompile Include="..\..\native\base\timeutil.cpp" />
+    <ClCompile Include="..\..\native\ext\cityhash\city.cpp" />
     <ClCompile Include="..\..\native\ext\stb_image\stb_image.c" />
     <ClCompile Include="..\..\native\file\fd_util.cpp" />
     <ClCompile Include="..\..\native\file\file_util.cpp" />
@@ -262,15 +265,20 @@
     <ClCompile Include="..\..\native\file\zip_read.cpp" />
     <ClCompile Include="..\..\native\i18n\i18n.cpp" />
     <ClCompile Include="..\..\native\image\png_load.cpp" />
+    <ClCompile Include="..\..\native\math\lin\matrix4x4.cpp" />
+    <ClCompile Include="..\..\native\math\lin\quat.cpp" />
+    <ClCompile Include="..\..\native\thread\threadpool.cpp" />
     <ClCompile Include="..\Compare.cpp" />
     <ClCompile Include="..\display_xbox.cpp" />
     <ClCompile Include="..\Headless.cpp" />
-    <ClCompile Include="..\WindowsHeadlessHost.cpp" />
+    <ClCompile Include="..\XboxHost.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\native\base\buffer.h" />
     <ClInclude Include="..\..\native\base\stringutil.h" />
     <ClInclude Include="..\..\native\base\timeutil.h" />
+    <ClInclude Include="..\..\native\ext\cityhash\city.h" />
+    <ClInclude Include="..\..\native\ext\cityhash\citycrc.h" />
     <ClInclude Include="..\..\native\ext\stb_image\stb_image.h" />
     <ClInclude Include="..\..\native\file\fd_util.h" />
     <ClInclude Include="..\..\native\file\file_util.h" />
@@ -278,6 +286,7 @@
     <ClInclude Include="..\..\native\file\zip_read.h" />
     <ClInclude Include="..\..\native\i18n\i18n.h" />
     <ClInclude Include="..\..\native\image\png_load.h" />
+    <ClInclude Include="..\..\native\thread\threadpool.h" />
     <ClInclude Include="..\Compare.h" />
     <ClInclude Include="..\StubHost.h" />
     <ClInclude Include="..\WindowsHeadlessHost.h" />

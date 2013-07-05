@@ -902,10 +902,20 @@ Module *__KernelLoadModule(u8 *fileptr, SceKernelLMOption *options, std::string 
 		int numfiles;
 
 		memcpy(&offset0, fileptr + 8, 4);
+#ifdef PPC
+		offset0 = LE_32(offset0);
+#endif
 		numfiles = (offset0 - 8)/4;
 		offsets[0] = offset0;
-		for (int i = 1; i < numfiles; i++)
+		for (int i = 1; i < numfiles; i++) {
 			memcpy(&offsets[i], fileptr + 12 + 4*i, 4);
+#ifdef PPC
+			offsets[i] = LE_32(offsets[i]);
+#endif
+		}
+#ifdef PPC
+		version = LE_32(version);
+#endif
 		u32 magic = 0;
 		module = __KernelLoadELFFromPtr(fileptr + offsets[5], PSP_GetDefaultLoadAddress(), error_string, &magic);
 	}

@@ -524,8 +524,8 @@ TextureScaler::TextureScaler() {
 	initBicubicWeights();
 }
 
-bool TextureScaler::IsEmptyOrFlat(u32* data, int pixels, GLenum fmt) {
-	int pixelsPerWord = (fmt == GL_UNSIGNED_BYTE) ? 1 : 2;
+bool TextureScaler::IsEmptyOrFlat(u32* data, int pixels, u32 fmt) {
+	int pixelsPerWord = (fmt == D3DFMT(D3DFMT_A8R8G8B8)) ? 1 : 2;
 	int ref = data[0];
 	for(int i=0; i<pixels/pixelsPerWord; ++i) {
 		if(data[i]!=ref) return false;
@@ -533,7 +533,7 @@ bool TextureScaler::IsEmptyOrFlat(u32* data, int pixels, GLenum fmt) {
 	return true;
 }
 
-void TextureScaler::Scale(u32* &data, GLenum &dstFmt, int &width, int &height, int factor) {
+void TextureScaler::Scale(u32* &data, u32 &dstFmt, int &width, int &height, int factor) {
 	// prevent processing empty or flat textures (this happens a lot in some games)
 	// doesn't hurt the standard case, will be very quick for textures with actual texture
 	if(IsEmptyOrFlat(data, width*height, dstFmt)) {
@@ -580,7 +580,7 @@ void TextureScaler::Scale(u32* &data, GLenum &dstFmt, int &width, int &height, i
 
 	// update values accordingly
 	data = outputBuf;
-	dstFmt = GL_UNSIGNED_BYTE;
+	dstFmt = D3DFMT(D3DFMT_A8R8G8B8);
 	width *= factor;
 	height *= factor;
 
@@ -651,21 +651,21 @@ void TextureScaler::DePosterize(u32* source, u32* dest, int width, int height) {
 	GlobalThreadPool::Loop(std::bind(&deposterizeV, bufTmp3.data(), dest, width, height, placeholder::_1, placeholder::_2), 0, height);
 }
 
-void TextureScaler::ConvertTo8888(GLenum format, u32* source, u32* &dest, int width, int height) {
+void TextureScaler::ConvertTo8888(u32 format, u32* source, u32* &dest, int width, int height) {
 	switch(format) {
-	case GL_UNSIGNED_BYTE:
+	case D3DFMT(D3DFMT_A8R8G8B8):
 		dest = source; // already fine
 		break;
 
-	case GL_UNSIGNED_SHORT_4_4_4_4:
+	case D3DFMT(D3DFMT_A4R4G4B4):
 		GlobalThreadPool::Loop(std::bind(&convert4444, (u16*)source, dest, width, placeholder::_1, placeholder::_2), 0, height);
 		break;
 
-	case GL_UNSIGNED_SHORT_5_6_5:
+	case D3DFMT(D3DFMT_R5G6B5):
 		GlobalThreadPool::Loop(std::bind(&convert565, (u16*)source, dest, width, placeholder::_1, placeholder::_2), 0, height);
 		break;
 
-	case GL_UNSIGNED_SHORT_5_5_5_1:
+	case D3DFMT(D3DFMT_A1R5G5B5):
 		GlobalThreadPool::Loop(std::bind(&convert5551, (u16*)source, dest, width, placeholder::_1, placeholder::_2), 0, height);
 		break;
 

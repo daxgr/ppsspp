@@ -20,7 +20,8 @@
 #include "Core/Config.h"
 #include "Core/Reporting.h"
 #include "Core/System.h"
-#include "gfx_es2/gl_state.h"
+
+#include "helper/dx_state.h"
 
 #include "../GPUState.h"
 #include "../ge_constants.h"
@@ -174,7 +175,7 @@ static const u8 flushBeforeCommandList[] = {
 GLES_GPU::GLES_GPU()
 : resized_(false) {
 	lastVsync_ = g_Config.iVSyncInterval;
-	glstate.SetVSyncInterval(g_Config.iVSyncInterval);
+	dxstate.SetVSyncInterval(g_Config.iVSyncInterval);
 
 	shaderManager_ = new ShaderManager();
 	transformDraw_.SetShaderManager(shaderManager_);
@@ -208,26 +209,9 @@ GLES_GPU::~GLES_GPU() {
 	delete [] flushBeforeCommand_;
 }
 
-// Let's avoid passing nulls into snprintf().
-static const char *GetGLStringAlways(GLenum name) {
-	const GLubyte *value = glGetString(name);
-	if (!value)
-		return "?";
-	return (const char *)value;
-}
-
 // Needs to be called on GPU thread, not reporting thread.
 void GLES_GPU::BuildReportingInfo() {
-	const char *glVendor = GetGLStringAlways(GL_VENDOR);
-	const char *glRenderer = GetGLStringAlways(GL_RENDERER);
-	const char *glVersion = GetGLStringAlways(GL_VERSION);
-	const char *glSlVersion = GetGLStringAlways(GL_SHADING_LANGUAGE_VERSION);
-	const char *glExtensions = GetGLStringAlways(GL_EXTENSIONS);
-
-	char temp[16384];
-	snprintf(temp, sizeof(temp), "%s (%s %s), %s (extensions: %s)", glVersion, glVendor, glRenderer, glSlVersion, glExtensions);
-	reportingPrimaryInfo_ = glVendor;
-	reportingFullInfo_ = temp;
+	
 }
 
 void GLES_GPU::DeviceLost() {
@@ -240,12 +224,15 @@ void GLES_GPU::DeviceLost() {
 
 void GLES_GPU::InitClear() {
 	if (!g_Config.bBufferedRendering) {
-		glstate.depthWrite.set(GL_TRUE);
-		glstate.colorMask.set(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+		dxstate.depthWrite.set(true);
+		dxstate.colorMask.set(true, true, true, true);
+		/*
 		glClearColor(0,0,0,1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+		*/
+		pD3Ddevice->Clear(0, NULL, D3DCLEAR_STENCIL|D3DCLEAR_TARGET|D3DCLEAR_ZBUFFER, D3DCOLOR_XRGB(0, 0, 0), 1.f, 0);
 	}
-	glstate.viewport.set(0, 0, PSP_CoreParameter().pixelWidth, PSP_CoreParameter().pixelHeight);
+	dxstate.viewport.set(0, 0, PSP_CoreParameter().pixelWidth, PSP_CoreParameter().pixelHeight);
 }
 
 void GLES_GPU::DumpNextFrame() {
@@ -258,7 +245,7 @@ void GLES_GPU::BeginFrame() {
 	if (PSP_CoreParameter().unthrottle)
 		desiredVSyncInterval = 0;
 	if (desiredVSyncInterval != lastVsync_) {
-		glstate.SetVSyncInterval(desiredVSyncInterval);
+		dxstate.SetVSyncInterval(desiredVSyncInterval);
 		lastVsync_ = desiredVSyncInterval;
 	}
 
@@ -294,8 +281,8 @@ bool GLES_GPU::FramebufferDirty() {
 }
 
 void GLES_GPU::CopyDisplayToOutput() {
-	glstate.depthWrite.set(GL_TRUE);
-	glstate.colorMask.set(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+	dxstate.depthWrite.set(true);
+	dxstate.colorMask.set(true, true, true, true);
 
 	transformDraw_.Flush();
 

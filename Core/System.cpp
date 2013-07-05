@@ -178,6 +178,16 @@ void GetSysDirectories(std::string &memstickpath, std::string &flash0path) {
 
 	memstickpath = memstickpath_buf;
 	flash0path = flash0path_buf;
+#elif defined(_XBOX)
+	char memstickpath_buf[_MAX_PATH];
+	char flash0path_buf[_MAX_PATH];
+
+	// Mount a couple of filesystems
+	sprintf(memstickpath_buf, "game:\\memstick\\");
+	sprintf(flash0path_buf, "game:\\flash0\\");
+
+	memstickpath = memstickpath_buf;
+	flash0path = flash0path_buf;
 #else
 	// TODO
 	memstickpath = g_Config.memCardDirectory;

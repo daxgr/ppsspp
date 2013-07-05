@@ -15,9 +15,8 @@
 // Official git repository and contact information can be found at
 // https://github.com/hrydgard/ppsspp and http://www.ppsspp.org/.
 
-#include "gfx_es2/glsl_program.h"
-#include "gfx_es2/gl_state.h"
-#include "gfx_es2/fbo.h"
+#include "helper/dx_state.h"
+#include "helper/fbo.h"
 
 #include "math/lin/matrix4x4.h"
 
@@ -25,37 +24,12 @@
 #include "Core/MemMap.h"
 #include "Core/Config.h"
 #include "Core/System.h"
-#include "GPU/ge_constants.h"
-#include "GPU/GPUState.h"
+#include "GPUXbox/ge_constants.h"
+#include "GPUXbox/GPUState.h"
 
-#include "GPU/GLES/Framebuffer.h"
-#include "GPU/GLES/TextureCache.h"
-#include "GPU/GLES/ShaderManager.h"
-
-static const char tex_fs[] =
-	"#ifdef GL_ES\n"
-	"precision mediump float;\n"
-	"#endif\n"
-	"uniform sampler2D sampler0;\n"
-	"varying vec2 v_texcoord0;\n"
-	"void main() {\n"
-	"	gl_FragColor = texture2D(sampler0, v_texcoord0);\n"
-	"	gl_FragColor.a = 1.0;\n"
-	"}\n";
-
-static const char basic_vs[] =
-#ifndef USING_GLES2
-	"#version 120\n"
-#endif
-	"attribute vec4 a_position;\n"
-	"attribute vec2 a_texcoord0;\n"
-	"uniform mat4 u_viewproj;\n"
-	"varying vec4 v_color;\n"
-	"varying vec2 v_texcoord0;\n"
-	"void main() {\n"
-	"  v_texcoord0 = a_texcoord0;\n"
-	"  gl_Position = u_viewproj * a_position;\n"
-	"}\n";
+#include "GPUXbox/Directx9/Framebuffer.h"
+#include "GPUXbox/Directx9/TextureCache.h"
+//#include "GPUXbox/Directx9/ShaderManager.h"
 
 // Aggressively delete unused FBO:s to save gpu memory.
 enum {
@@ -118,30 +92,39 @@ FramebufferManager::FramebufferManager() :
 	drawPixelsTexFormat_(-1),
 	convBuf(0)
 {
+#if 0
 	draw2dprogram = glsl_create_source(basic_vs, tex_fs);
 
 	glsl_bind(draw2dprogram);
 	glUniform1i(draw2dprogram->sampler0, 0);
 	glsl_unbind();
 
+#endif
 	// And an initial clear. We don't clear per frame as the games are supposed to handle that
 	// by themselves.
-	glstate.depthWrite.set(GL_TRUE);
-	glstate.colorMask.set(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-	glClearColor(0,0,0,1);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+	dxstate.depthWrite.set(true);
+	dxstate.colorMask.set(true, true, true, true);
+	pD3Ddevice->Clear(0, NULL, D3DCLEAR_STENCIL|D3DCLEAR_TARGET |D3DCLEAR_ZBUFFER, D3DCOLOR_XRGB(0, 0, 0), 1, 0);
+
+	pD3Ddevice->CreateTexture(512, 272, 1, 0, D3DFMT(D3DFMT_A8R8G8B8), NULL, &drawPixelsTex_, NULL);
 
 	useBufferedRendering_ = g_Config.bBufferedRendering;
 }
 
 FramebufferManager::~FramebufferManager() {
+#if 0
 	if (drawPixelsTex_)
 		glDeleteTextures(1, &drawPixelsTex_);
 	glsl_destroy(draw2dprogram);
+#endif
+	if(drawPixelsTex_) {
+		drawPixelsTex_->Release();
+	}
 	delete [] convBuf;
 }
 
 void FramebufferManager::DrawPixels(const u8 *framebuf, int pixelFormat, int linesize) {
+#if 0
 	if (drawPixelsTex_ && drawPixelsTexFormat_ != pixelFormat) {
 		glDeleteTextures(1, &drawPixelsTex_);
 		drawPixelsTex_ = 0;
@@ -167,25 +150,31 @@ void FramebufferManager::DrawPixels(const u8 *framebuf, int pixelFormat, int lin
 		glBindTexture(GL_TEXTURE_2D, 0);
 		drawPixelsTexFormat_ = pixelFormat;
 	}
+#endif
+	u8 * convBuf = NULL;
+	D3DLOCKED_RECT rect;
+
+	drawPixelsTex_->LockRect(0, &rect, NULL, D3DLOCK_NOOVERWRITE);
+
+	convBuf = (u8*)rect.pBits;
+
+	// Final format is ARGB(directx)
 
 	// TODO: We can just change the texture format and flip some bits around instead of this.
 	if (pixelFormat != PSP_DISPLAY_PIXEL_FORMAT_8888 || linesize != 512) {
-		if (!convBuf) {
-			convBuf = new u8[512 * 272 * 4];
-		}
 		for (int y = 0; y < 272; y++) {
 			switch (pixelFormat) {
 			case PSP_DISPLAY_PIXEL_FORMAT_565:
 				{
 					const u16 *src = (const u16 *)framebuf + linesize * y;
-					u8 *dst = convBuf + 4 * 512 * y;
+					u8 *dst = convBuf + rect.Pitch * y;
 					for (int x = 0; x < 480; x++)
 					{
-						u16 col = src[x];
-						dst[x * 4] = ((col) & 0x1f) << 3;
-						dst[x * 4 + 1] = ((col >> 5) & 0x3f) << 2;
-						dst[x * 4 + 2] = ((col >> 11) & 0x1f) << 3;
-						dst[x * 4 + 3] = 255;
+						u16 col = LE_16(src[x]);
+						dst[x * 4 + 1] = ((col) & 0x1f) << 3;
+						dst[x * 4 + 2] = ((col >> 5) & 0x3f) << 2;
+						dst[x * 4 + 3] = ((col >> 11) & 0x1f) << 3;
+						dst[x * 4 + 0] = 255;
 					}
 				}
 				break;
@@ -193,14 +182,14 @@ void FramebufferManager::DrawPixels(const u8 *framebuf, int pixelFormat, int lin
 			case PSP_DISPLAY_PIXEL_FORMAT_5551:
 				{
 					const u16 *src = (const u16 *)framebuf + linesize * y;
-					u8 *dst = convBuf + 4 * 512 * y;
+					u8 *dst = convBuf + rect.Pitch * y;
 					for (int x = 0; x < 480; x++)
 					{
-						u16 col = src[x];
-						dst[x * 4] = ((col) & 0x1f) << 3;
-						dst[x * 4 + 1] = ((col >> 5) & 0x1f) << 3;
-						dst[x * 4 + 2] = ((col >> 10) & 0x1f) << 3;
-						dst[x * 4 + 3] = (col >> 15) ? 255 : 0;
+						u16 col = LE_16(src[x]);
+						dst[x * 4 + 1] = ((col) & 0x1f) << 3;
+						dst[x * 4 + 2] = ((col >> 5) & 0x1f) << 3;
+						dst[x * 4 + 3] = ((col >> 10) & 0x1f) << 3;
+						dst[x * 4 + 0] = (col >> 15) ? 255 : 0;
 					}
 				}
 				break;
@@ -208,14 +197,14 @@ void FramebufferManager::DrawPixels(const u8 *framebuf, int pixelFormat, int lin
 			case PSP_DISPLAY_PIXEL_FORMAT_4444:
 				{
 					const u16 *src = (const u16 *)framebuf + linesize * y;
-					u8 *dst = convBuf + 4 * 512 * y;
+					u8 *dst = convBuf + rect.Pitch * y;
 					for (int x = 0; x < 480; x++)
 					{
-						u16 col = src[x];
-						dst[x * 4] = ((col >> 8) & 0xf) << 4;
-						dst[x * 4 + 1] = ((col >> 4) & 0xf) << 4;
-						dst[x * 4 + 2] = (col & 0xf) << 4;
-						dst[x * 4 + 3] = (col >> 12) << 4;
+						u16 col = LE_16(src[x]);
+						dst[x * 4 + 1] = ((col >> 8) & 0xf) << 4;
+						dst[x * 4 + 2] = ((col >> 4) & 0xf) << 4;
+						dst[x * 4 + 3] = (col & 0xf) << 4;
+						dst[x * 4 + 0] = (col >> 12) << 4;
 					}
 				}
 				break;
@@ -223,20 +212,28 @@ void FramebufferManager::DrawPixels(const u8 *framebuf, int pixelFormat, int lin
 			case PSP_DISPLAY_PIXEL_FORMAT_8888:
 				{
 					const u8 *src = framebuf + linesize * 4 * y;
-					u8 *dst = convBuf + 4 * 512 * y;
+					u8 *dst = convBuf + rect.Pitch * y;
 					memcpy(dst, src, 4 * 480);
 				}
 				break;
 			}
 		}
+	} else {
+		memcpy(convBuf, framebuf, 4 * 480 * 512);
 	}
-
+#if 0
 	glBindTexture(GL_TEXTURE_2D,drawPixelsTex_);
 	if (g_Config.bLinearFiltering)
 	{
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	}
 	glTexSubImage2D(GL_TEXTURE_2D,0,0,0,512,272, GL_RGBA, GL_UNSIGNED_BYTE, pixelFormat == PSP_DISPLAY_PIXEL_FORMAT_8888 ? framebuf : convBuf);
+#endif
+
+	drawPixelsTex_->UnlockRect(0);
+	// D3DXSaveTextureToFile("game:\\cc.png", D3DXIFF_PNG, drawPixelsTex_, NULL);
+
+	pD3Ddevice->SetTexture(0, drawPixelsTex_);
 
 	float x, y, w, h;
 	CenterRect(&x, &y, &w, &h, 480.0f, 272.0f, (float)PSP_CoreParameter().pixelWidth, (float)PSP_CoreParameter().pixelHeight);
@@ -247,7 +244,7 @@ void FramebufferManager::DrawActiveTexture(float x, float y, float w, float h, b
 	float u2 = uscale;
 	float v1 = flip ? 1.0f : 0.0f;
 	float v2 = flip ? 0.0f : 1.0f;
-
+#if 0
 	const float pos[12] = {x,y,0, x+w,y,0, x+w,y+h,0, x,y+h,0};
 	const float texCoords[8] = {0, v1, u2, v1, u2, v2, 0, v2};
 
@@ -265,6 +262,37 @@ void FramebufferManager::DrawActiveTexture(float x, float y, float w, float h, b
 	glDisableVertexAttribArray(draw2dprogram->a_position);
 	glDisableVertexAttribArray(draw2dprogram->a_texcoord0);
 	glsl_unbind();
+#endif
+	/*
+	const float coord[] = { 
+		x,	 y,	  0,	0,	v1,
+		x+w, y,	  0,	u2, v1,
+		x+w, y+h, 0,	u2, v2,
+		x,	 y+h, 0,	0,	v2
+	};
+	*/
+	const float coord[] = { 
+		-1, -1, 0, 0,  v1,
+		 1, -1, 0, u2, v1,
+		 1,  1, 0, u2, v2,
+		-1,  1, 0, 0,  v2
+	};
+	XMMATRIX matWVP;
+	matWVP = XMMatrixIdentity();
+
+	Matrix4x4 ortho;
+	ortho.setOrtho(0, (float)PSP_CoreParameter().pixelWidth, (float)PSP_CoreParameter().pixelHeight, 0, -1, 1);
+
+	//pD3Ddevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_WIREFRAME);
+	pD3Ddevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+	//pD3Ddevice->SetVertexShaderConstantF(0, ortho.getReadPtr(), 4);
+	pD3Ddevice->SetVertexShaderConstantF(0, (float*)&matWVP, 4);
+	
+	pD3Ddevice->SetVertexDeclaration(pFramebufferVertexDecl);
+	pD3Ddevice->SetPixelShader(pFramebufferPixelShader);
+	pD3Ddevice->SetVertexShader(pFramebufferVertexShader);
+	pD3Ddevice->SetTexture(0, drawPixelsTex_);
+	pD3Ddevice->DrawPrimitiveUP(D3DPT_TRIANGLEFAN, 2, coord, 5 * sizeof(float));
 }
 
 VirtualFramebuffer *FramebufferManager::GetDisplayFBO() {
@@ -326,6 +354,7 @@ void GuessDrawingSize(int &drawing_width, int &drawing_height) {
 
 void FramebufferManager::DestroyFramebuf(VirtualFramebuffer *v) {
 	textureCache_->NotifyFramebufferDestroyed(v->fb_address, v);
+
 	if (v->fbo) {
 		fbo_destroy(v->fbo);
 		v->fbo = 0;
@@ -469,11 +498,11 @@ void FramebufferManager::SetRenderFrameBuffer() {
 		vfb->last_frame_used = gpuStats.numFrames;
 		frameLastFramebufUsed = gpuStats.numFrames;
 		vfbs_.push_back(vfb);
-		glstate.depthWrite.set(GL_TRUE);
-		glstate.colorMask.set(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-		glClearColor(0,0,0,1);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-		glEnable(GL_DITHER);
+
+		dxstate.depthWrite.set(true);
+		dxstate.colorMask.set(true, true, true, true);
+		pD3Ddevice->Clear(0, NULL, D3DCLEAR_STENCIL|D3DCLEAR_TARGET |D3DCLEAR_ZBUFFER, D3DCOLOR_XRGB(0, 0, 0), 1, 0);
+
 		currentRenderVfb_ = vfb;
 
 		INFO_LOG(HLE, "Creating FBO for %08x : %i x %i x %i", vfb->fb_address, vfb->width, vfb->height, vfb->format);
@@ -499,6 +528,7 @@ void FramebufferManager::SetRenderFrameBuffer() {
 			if (vfb->fbo) {
 				// wtf? This should only happen very briefly when toggling bBufferedRendering
 				textureCache_->NotifyFramebufferDestroyed(vfb->fb_address, vfb);
+
 				fbo_destroy(vfb->fbo);
 				vfb->fbo = 0;
 			}
@@ -518,6 +548,7 @@ void FramebufferManager::SetRenderFrameBuffer() {
 				gstate_c.skipDrawReason |= ~SKIPDRAW_SKIPNONFB;
 			}*/
 		}
+
 		textureCache_->NotifyFramebuffer(vfb->fb_address, vfb);
 
 #ifdef USING_GLES2
@@ -540,7 +571,9 @@ void FramebufferManager::SetRenderFrameBuffer() {
 
 	// ugly...
 	if (gstate_c.curRTWidth != vfb->width || gstate_c.curRTHeight != vfb->height) {
+#if 0
 		shaderManager_->DirtyUniform(DIRTY_PROJTHROUGHMATRIX);
+#endif
 		gstate_c.curRTWidth = vfb->width;
 		gstate_c.curRTHeight = vfb->height;
 	}
@@ -551,6 +584,7 @@ void FramebufferManager::CopyDisplayToOutput() {
 	currentRenderVfb_ = 0;
 
 	VirtualFramebuffer *vfb = GetDisplayFBO();
+	
 	if (!vfb) {
 		if (Memory::IsValidAddress(ramDisplayFramebufPtr_)) {
 			// The game is displaying something directly from RAM. In GTA, it's decoded video.
@@ -561,10 +595,9 @@ void FramebufferManager::CopyDisplayToOutput() {
 		} else {
 			DEBUG_LOG(HLE, "Found no FBO to display! displayFBPtr = %08x", displayFramebufPtr_);
 			// No framebuffer to display! Clear to black.
-			glstate.depthWrite.set(GL_TRUE);
-			glstate.colorMask.set(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-			glClearColor(0,0,0,1);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+			dxstate.depthWrite.set(true);
+			dxstate.colorMask.set(true, true, true, true);
+			pD3Ddevice->Clear(0, NULL, D3DCLEAR_STENCIL|D3DCLEAR_TARGET |D3DCLEAR_ZBUFFER, D3DCOLOR_XRGB(0, 0, 0), 1, 0);
 		}
 		return;
 	}
@@ -581,13 +614,13 @@ void FramebufferManager::CopyDisplayToOutput() {
 	displayFramebuf_ = vfb;
 
 	if (vfb->fbo) {
-		glstate.viewport.set(0, 0, PSP_CoreParameter().pixelWidth, PSP_CoreParameter().pixelHeight);
+		dxstate.viewport.set(0, 0, PSP_CoreParameter().pixelWidth, PSP_CoreParameter().pixelHeight);
 		DEBUG_LOG(HLE, "Displaying FBO %08x", vfb->fb_address);
-		glstate.blend.disable();
-		glstate.cullFace.disable();
-		glstate.depthTest.disable();
-		glstate.scissorTest.disable();
-		glstate.stencilTest.disable();
+		dxstate.blend.disable();
+		dxstate.cullFace.disable();
+		dxstate.depthTest.disable();
+		dxstate.scissorTest.disable();
+		dxstate.stencilTest.disable();
 
 		fbo_bind_color_as_texture(vfb->fbo, 0);
 	
@@ -595,21 +628,20 @@ void FramebufferManager::CopyDisplayToOutput() {
 		float x, y, w, h;
 		CenterRect(&x, &y, &w, &h, 480.0f, 272.0f, (float)PSP_CoreParameter().pixelWidth, (float)PSP_CoreParameter().pixelHeight);
 		DrawActiveTexture(x, y, w, h, true);
-		glBindTexture(GL_TEXTURE_2D, 0);
+		pD3Ddevice->SetTexture(0, NULL);
 	}
 
 	if (resized_) {
-		glstate.depthWrite.set(GL_TRUE);
-		glstate.colorMask.set(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-		glClearColor(0,0,0,1);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+		dxstate.depthWrite.set(true);
+		dxstate.colorMask.set(true, true, true, true);
+		pD3Ddevice->Clear(0, NULL, D3DCLEAR_STENCIL|D3DCLEAR_TARGET |D3DCLEAR_ZBUFFER, D3DCOLOR_XRGB(0, 0, 0), 1, 0);
 	}
 }
 
 void FramebufferManager::EndFrame() {
 	if (resized_) {
 		DestroyAllFBOs();
-		glstate.viewport.set(0, 0, PSP_CoreParameter().pixelWidth, PSP_CoreParameter().pixelHeight);
+		dxstate.viewport.set(0, 0, PSP_CoreParameter().pixelWidth, PSP_CoreParameter().pixelHeight);
 		resized_ = false;
 	}
 }
@@ -625,11 +657,11 @@ void FramebufferManager::BeginFrame() {
 	if (g_Config.bDisplayFramebuffer && displayFramebufPtr_) {
 		INFO_LOG(HLE, "Drawing the framebuffer (%08x)", displayFramebufPtr_);
 		const u8 *pspframebuf = Memory::GetPointer((0x44000000) | (displayFramebufPtr_ & 0x1FFFFF));	// TODO - check
-		glstate.cullFace.disable();
-		glstate.depthTest.disable();
-		glstate.blend.disable();
-		glstate.scissorTest.disable();
-		glstate.stencilTest.disable();
+		dxstate.cullFace.disable();
+		dxstate.depthTest.disable();
+		dxstate.blend.disable();
+		dxstate.scissorTest.disable();
+		dxstate.stencilTest.disable();
 		DrawPixels(pspframebuf, displayFormat_, displayStride_);
 		// TODO: restore state?
 	}

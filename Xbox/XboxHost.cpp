@@ -25,16 +25,17 @@
 #include "file/vfs.h"
 #include "file/zip_read.h"
 
+// Bad !!
+extern LPDIRECT3DDEVICE9 pD3Ddevice;
+void DirectxInit();
+
 const bool WINDOW_VISIBLE = false;
 const int WINDOW_WIDTH = 480;
 const int WINDOW_HEIGHT = 272;
 
 void WindowsHeadlessHost::LoadNativeAssets()
 {
-	// Native is kinda talkative, but that's annoying in our case.
-	out = _fdopen(_dup(_fileno(stdout)), "wt");
-	freopen("NUL", "wt", stdout);
-
+	/*
 	VFSRegister("", new DirectoryAssetReader("assets/"));
 	VFSRegister("", new DirectoryAssetReader(""));
 	VFSRegister("", new DirectoryAssetReader("../"));
@@ -42,11 +43,11 @@ void WindowsHeadlessHost::LoadNativeAssets()
 	VFSRegister("", new DirectoryAssetReader("../Windows/"));
 
 	// See SendDebugOutput() for how things get back on track.
+	*/
 }
 
 void WindowsHeadlessHost::SendDebugOutput(const std::string &output)
 {
-	fprintf_s(out, "%s", output.c_str());
 	OutputDebugString(output.c_str());
 }
 
@@ -79,4 +80,7 @@ bool WindowsHeadlessHost::ResizeGL()
 
 void WindowsHeadlessHost::SwapBuffers()
 {
+	pD3Ddevice->Present(0, 0, 0, 0);
+	
+	pD3Ddevice->Clear(0, NULL, D3DCLEAR_STENCIL|D3DCLEAR_TARGET |D3DCLEAR_ZBUFFER, D3DCOLOR_XRGB(0, 0, 0), 1, 0);
 }

@@ -20,10 +20,10 @@
 
 #include "Core/MemMap.h"
 #include "Core/Reporting.h"
-#include "GPU/ge_constants.h"
-#include "GPU/GPUState.h"
-#include "GPU/GLES/TextureCache.h"
-#include "GPU/GLES/Framebuffer.h"
+#include "GPUXbox/ge_constants.h"
+#include "GPUXbox/GPUState.h"
+#include "GPUXbox/Directx9/TextureCache.h"
+#include "GPUXbox/Directx9/Framebuffer.h"
 #include "Core/Config.h"
 
 #include "native/ext/cityhash/city.h"
@@ -58,14 +58,15 @@ static inline u32 GetLevelBufw(int level, u32 texaddr) {
 }
 
 TextureCache::TextureCache() : clearCacheNextFrame_(false), lowMemoryMode_(false), clutBuf_(NULL) {
-	lastBoundTexture = -1;
+	lastBoundTexture = NULL;
 	// This is 5MB of temporary storage. Might be possible to shrink it.
 	tmpTexBuf32.resize(1024 * 512);  // 2MB
 	tmpTexBuf16.resize(1024 * 512);  // 1MB
 	tmpTexBufRearrange.resize(1024 * 512);   // 2MB
 	clutBufConverted_ = new u32[4096];  // 16KB
 	clutBufRaw_ = new u32[4096];  // 16KB
-	glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAnisotropyLevel);
+	// glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAnisotropyLevel);
+	maxAnisotropyLevel = 0;
 }
 
 TextureCache::~TextureCache() {
@@ -74,16 +75,16 @@ TextureCache::~TextureCache() {
 }
 
 void TextureCache::Clear(bool delete_them) {
-	glBindTexture(GL_TEXTURE_2D, 0);
-	lastBoundTexture = -1;
+	pD3Ddevice->SetTexture(0, NULL);
+	lastBoundTexture = NULL;
 	if (delete_them) {
 		for (TexCache::iterator iter = cache.begin(); iter != cache.end(); ++iter) {
 			DEBUG_LOG(G3D, "Deleting texture %i", iter->second.texture);
-			glDeleteTextures(1, &iter->second.texture);
+			iter->second.texture->Release();
 		}
 		for (TexCache::iterator iter = secondCache.begin(); iter != secondCache.end(); ++iter) {
 			DEBUG_LOG(G3D, "Deleting texture %i", iter->second.texture);
-			glDeleteTextures(1, &iter->second.texture);
+			iter->second.texture->Release();
 		}
 	}
 	if (cache.size() + secondCache.size()) {
@@ -95,12 +96,12 @@ void TextureCache::Clear(bool delete_them) {
 
 // Removes old textures.
 void TextureCache::Decimate() {
-	glBindTexture(GL_TEXTURE_2D, 0);
-	lastBoundTexture = -1;
+	pD3Ddevice->SetTexture(0, NULL);
+	lastBoundTexture = NULL;
 	int killAge = lowMemoryMode_ ? TEXTURE_KILL_AGE_LOWMEM : TEXTURE_KILL_AGE;
 	for (TexCache::iterator iter = cache.begin(); iter != cache.end(); ) {
 		if (iter->second.lastFrame + TEXTURE_KILL_AGE < gpuStats.numFrames) {
-			glDeleteTextures(1, &iter->second.texture);
+			iter->second.texture->Release();
 			cache.erase(iter++);
 		}
 		else
@@ -108,7 +109,7 @@ void TextureCache::Decimate() {
 	}
 	for (TexCache::iterator iter = secondCache.begin(); iter != secondCache.end(); ) {
 		if (lowMemoryMode_ || iter->second.lastFrame + TEXTURE_KILL_AGE < gpuStats.numFrames) {
-			glDeleteTextures(1, &iter->second.texture);
+			iter->second.texture->Release();
 			secondCache.erase(iter++);
 		}
 		else
@@ -350,7 +351,7 @@ inline void DeIndexTexture4Optimal(ClutT *dest, const u32 texaddr, int length, C
 	DeIndexTexture4Optimal(dest, indexed, length, color);
 }
 
-void *TextureCache::readIndexedTex(int level, u32 texaddr, int bytesPerIndex, GLuint dstFmt) {
+void *TextureCache::readIndexedTex(int level, u32 texaddr, int bytesPerIndex, u32 dstFmt) {
 	int bufw = GetLevelBufw(level, texaddr);
 	int w = 1 << (gstate.texsize[0] & 0xf);
 	int h = 1 << ((gstate.texsize[0] >> 8) & 0xf);
@@ -453,36 +454,37 @@ void *TextureCache::readIndexedTex(int level, u32 texaddr, int bytesPerIndex, GL
 	return buf;
 }
 
-GLenum getClutDestFormat(GEPaletteFormat format) {
+D3DFORMAT getClutDestFormat(GEPaletteFormat format) {
 	switch (format) {
 	case GE_CMODE_16BIT_ABGR4444:
-		return GL_UNSIGNED_SHORT_4_4_4_4;
+		return D3DFMT(D3DFMT_A4R4G4B4);
 	case GE_CMODE_16BIT_ABGR5551:
-		return GL_UNSIGNED_SHORT_5_5_5_1;
+		return D3DFMT(D3DFMT_A1R5G5B5);
 	case GE_CMODE_16BIT_BGR5650:
-		return GL_UNSIGNED_SHORT_5_6_5;
+		return D3DFMT(D3DFMT_R5G6B5);
 	case GE_CMODE_32BIT_ABGR8888:
-		return GL_UNSIGNED_BYTE;
+		return D3DFMT(D3DFMT_A8R8G8B8);
 	}
-	return 0;
+	// Should never be here !
+	return D3DFMT(D3DFMT_A8R8G8B8);
 }
 
 static const u8 texByteAlignMap[] = {2, 2, 2, 4};
 
-static const GLuint MinFiltGL[8] = {
-	GL_NEAREST,
-	GL_LINEAR,
-	GL_NEAREST,
-	GL_LINEAR,
-	GL_NEAREST_MIPMAP_NEAREST,
-	GL_LINEAR_MIPMAP_NEAREST,
-	GL_NEAREST_MIPMAP_LINEAR,
-	GL_LINEAR_MIPMAP_LINEAR,
+static const u32 MinFiltGL[8] = {
+	D3DTEXF_POINT,
+	D3DTEXF_LINEAR,
+	D3DTEXF_POINT,
+	D3DTEXF_LINEAR,
+	D3DTEXF_POINT,	// GL_NEAREST_MIPMAP_NEAREST,
+	D3DTEXF_LINEAR,	// GL_LINEAR_MIPMAP_NEAREST,
+	D3DTEXF_POINT,	// GL_NEAREST_MIPMAP_LINEAR,
+	D3DTEXF_LINEAR,	// GL_LINEAR_MIPMAP_LINEAR,
 };
 
-static const GLuint MagFiltGL[2] = {
-	GL_NEAREST,
-	GL_LINEAR
+static const u32 MagFiltGL[2] = {
+	D3DTEXF_POINT,
+	D3DTEXF_LINEAR
 };
 
 // This should not have to be done per texture! OpenGL is silly yo
@@ -503,7 +505,7 @@ void TextureCache::UpdateSamplingParams(TexCacheEntry &entry, bool force) {
 		float lodBias = 0.0; // -(float)((gstate.texlevel >> 16) & 0xFF) / 16.0f;
 		if (force || entry.lodBias != lodBias) {
 #ifndef USING_GLES2
-			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, lodBias);
+			// glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, lodBias);
 #endif
 			entry.lodBias = lodBias;
 		}
@@ -525,19 +527,19 @@ void TextureCache::UpdateSamplingParams(TexCacheEntry &entry, bool force) {
 	}
 
 	if (force || entry.minFilt != minFilt) {
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, MinFiltGL[minFilt]);
+		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, MinFiltGL[minFilt]);
 		entry.minFilt = minFilt;
 	}
 	if (force || entry.magFilt != magFilt) {
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, MagFiltGL[magFilt]);
+		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, MagFiltGL[magFilt]);
 		entry.magFilt = magFilt;
 	}
 	if (force || entry.sClamp != sClamp) {
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, sClamp ? GL_CLAMP_TO_EDGE : GL_REPEAT);
+		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, sClamp ? GL_CLAMP_TO_EDGE : GL_REPEAT);
 		entry.sClamp = sClamp;
 	}
 	if (force || entry.tClamp != tClamp) {
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, tClamp ? GL_CLAMP_TO_EDGE : GL_REPEAT);
+		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, tClamp ? GL_CLAMP_TO_EDGE : GL_REPEAT);
 		entry.tClamp = tClamp;
 	}
 }
@@ -665,12 +667,12 @@ static void decodeDXT5Block(u32 *dst, const DXT5Block *src, int pitch) {
 	}
 }
 
-static void ConvertColors(void *dstBuf, const void *srcBuf, GLuint dstFmt, int numPixels) {
+static void ConvertColors(void *dstBuf, const void *srcBuf, u32 dstFmt, int numPixels) {
 	const u32 *src = (const u32 *)srcBuf;
 	u32 *dst = (u32 *)dstBuf;
 	// TODO: All these can be further sped up with SSE or NEON.
 	switch (dstFmt) {
-	case GL_UNSIGNED_SHORT_4_4_4_4:
+	case D3DFMT(D3DFMT_A4R4G4B4):
 		{
 			for (int i = 0; i < (numPixels + 1) / 2; i++) {
 				u32 c = src[i];
@@ -681,7 +683,7 @@ static void ConvertColors(void *dstBuf, const void *srcBuf, GLuint dstFmt, int n
 			}
 		}
 		break;
-	case GL_UNSIGNED_SHORT_5_5_5_1:
+	case D3DFMT(D3DFMT_A1R5G5B5):
 		{
 			for (int i = 0; i < (numPixels + 1) / 2; i++) {
 				u32 c = src[i];
@@ -692,7 +694,7 @@ static void ConvertColors(void *dstBuf, const void *srcBuf, GLuint dstFmt, int n
 			}
 		}
 		break;
-	case GL_UNSIGNED_SHORT_5_6_5:
+	case D3DFMT(D3DFMT_R5G6B5):
 		{
 			for (int i = 0; i < (numPixels + 1) / 2; i++) {
 				u32 c = src[i];
@@ -713,7 +715,7 @@ static void ConvertColors(void *dstBuf, const void *srcBuf, GLuint dstFmt, int n
 }
 
 void TextureCache::StartFrame() {
-	lastBoundTexture = -1;
+	lastBoundTexture = NULL;
 	if(clearCacheNextFrame_) {
 		Clear(true);
 		clearCacheNextFrame_ = false;
@@ -925,8 +927,8 @@ void TextureCache::SetTexture() {
 	u32 texaddr = (gstate.texaddr[0] & 0xFFFFF0) | ((gstate.texbufwidth[0]<<8) & 0x0F000000);
 	if (!Memory::IsValidAddress(texaddr)) {
 		// Bind a null texture and return.
-		glBindTexture(GL_TEXTURE_2D, 0);
-		lastBoundTexture = -1;
+		pD3Ddevice->SetTexture(0, NULL);
+		lastBoundTexture = NULL;
 		return;
 	}
 
@@ -976,15 +978,15 @@ void TextureCache::SetTexture() {
 			if (!g_Config.bBufferedRendering) {
 				if (entry->framebuffer->fbo)
 					entry->framebuffer->fbo = 0;
-				glBindTexture(GL_TEXTURE_2D, 0);
-				lastBoundTexture = -1;
+				pD3Ddevice->SetTexture(0, NULL);
+				lastBoundTexture = NULL;
 				entry->lastFrame = gpuStats.numFrames;
 			} else {
 				if (entry->framebuffer->fbo) {
 					fbo_bind_color_as_texture(entry->framebuffer->fbo, 0);
 				} else {
-					glBindTexture(GL_TEXTURE_2D, 0);
-					lastBoundTexture = -1;
+					pD3Ddevice->SetTexture(0, NULL);
+					lastBoundTexture = NULL;
 					gstate_c.skipDrawReason |= SKIPDRAW_BAD_FB_TEXTURE;
 				}
 				UpdateSamplingParams(*entry, false);
@@ -1076,7 +1078,7 @@ void TextureCache::SetTexture() {
 			//got one!
 			entry->lastFrame = gpuStats.numFrames;
 			if (entry->texture != lastBoundTexture) {
-				glBindTexture(GL_TEXTURE_2D, entry->texture);
+				pD3Ddevice->SetTexture(0, entry->texture);
 				lastBoundTexture = entry->texture;
 				gstate_c.textureFullAlpha = (entry->status & TexCacheEntry::STATUS_ALPHA_MASK) == TexCacheEntry::STATUS_ALPHA_FULL;
 			}
@@ -1094,9 +1096,9 @@ void TextureCache::SetTexture() {
 					replaceImages = true;
 				} else {
 					if (entry->texture == lastBoundTexture) {
-						lastBoundTexture = -1;
+						lastBoundTexture = NULL;
 					}
-					glDeleteTextures(1, &entry->texture);
+					entry->texture->Release();
 				}
 			}
 			if (entry->status == TexCacheEntry::STATUS_RELIABLE) {
@@ -1140,9 +1142,9 @@ void TextureCache::SetTexture() {
 	gstate_c.curTextureHeight = h;
 
 	if (!replaceImages) {
-		glGenTextures(1, &entry->texture);
+		entry->texture->Release();
 	}
-	glBindTexture(GL_TEXTURE_2D, entry->texture);
+	pD3Ddevice->SetTexture(0, entry->texture);
 	lastBoundTexture = entry->texture;
 	
 	// Adjust maxLevel to actually present levels..
@@ -1171,30 +1173,30 @@ void TextureCache::SetTexture() {
 		for (int i = 0; i <= maxLevel; i++) {
 			LoadTextureLevel(*entry, i, replaceImages);
 		}
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, maxLevel);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, (float)maxLevel);
+		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, maxLevel);
+		//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, (float)maxLevel);
 #endif
 	} else {
 		LoadTextureLevel(*entry, 0, replaceImages);
 #ifndef USING_GLES2
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 #endif
 	}
 
 	float anisotropyLevel = (float) g_Config.iAnisotropyLevel > maxAnisotropyLevel ? maxAnisotropyLevel : (float) g_Config.iAnisotropyLevel;
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, anisotropyLevel);
+	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, anisotropyLevel);
 
 	UpdateSamplingParams(*entry, true);
 
 	//glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	//glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	//glPixelStorei(GL_PACK_ROW_LENGTH, 0);
-	glPixelStorei(GL_PACK_ALIGNMENT, 1);
+	//glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
 	gstate_c.textureFullAlpha = (entry->status & TexCacheEntry::STATUS_ALPHA_MASK) == TexCacheEntry::STATUS_ALPHA_FULL;
 }
 
-void *TextureCache::DecodeTextureLevel(u8 format, u8 clutformat, int level, u32 &texByteAlign, GLenum &dstFmt) {
+void *TextureCache::DecodeTextureLevel(u8 format, u8 clutformat, int level, u32 &texByteAlign, u32 &dstFmt) {
 	void *finalBuf = NULL;
 
 	u32 texaddr = (gstate.texaddr[level] & 0xFFFFF0) | ((gstate.texbufwidth[level] << 8) & 0x0F000000);
@@ -1289,11 +1291,11 @@ void *TextureCache::DecodeTextureLevel(u8 format, u8 clutformat, int level, u32 
 	case GE_TFMT_5551:
 	case GE_TFMT_5650:
 		if (format == GE_TFMT_4444)
-			dstFmt = GL_UNSIGNED_SHORT_4_4_4_4;
+			dstFmt = D3DFMT(D3DFMT_A4R4G4B4);
 		else if (format == GE_TFMT_5551)
-			dstFmt = GL_UNSIGNED_SHORT_5_5_5_1;
+			dstFmt = D3DFMT(D3DFMT_A1R5G5B5);
 		else if (format == GE_TFMT_5650)
-			dstFmt = GL_UNSIGNED_SHORT_5_6_5;
+			dstFmt = D3DFMT(D3DFMT_R5G6B5);
 		texByteAlign = 2;
 
 		if (!(gstate.texmode & 1)) {
@@ -1311,7 +1313,7 @@ void *TextureCache::DecodeTextureLevel(u8 format, u8 clutformat, int level, u32 
 		break;
 
 	case GE_TFMT_8888:
-		dstFmt = GL_UNSIGNED_BYTE;
+		dstFmt = D3DFMT(D3DFMT_A8R8G8B8);
 		if (!(gstate.texmode & 1)) {
 			// Special case: if we don't need to deal with packing, we don't need to copy.
 			if (w == bufw) {
@@ -1332,7 +1334,7 @@ void *TextureCache::DecodeTextureLevel(u8 format, u8 clutformat, int level, u32 
 		break;
 
 	case GE_TFMT_DXT1:
-		dstFmt = GL_UNSIGNED_BYTE;
+		dstFmt = D3DFMT(D3DFMT_A8R8G8B8);
 		{
 			int minw = std::min(bufw, w);
 			tmpTexBuf32.resize(std::max(bufw, w) * h);
@@ -1354,7 +1356,7 @@ void *TextureCache::DecodeTextureLevel(u8 format, u8 clutformat, int level, u32 
 		break;
 
 	case GE_TFMT_DXT3:
-		dstFmt = GL_UNSIGNED_BYTE;
+		dstFmt = D3DFMT(D3DFMT_A8R8G8B8);
 		{
 			int minw = std::min(bufw, w);
 			tmpTexBuf32.resize(std::max(bufw, w) * h);
@@ -1376,7 +1378,7 @@ void *TextureCache::DecodeTextureLevel(u8 format, u8 clutformat, int level, u32 
 		break;
 
 	case GE_TFMT_DXT5:  // These work fine now
-		dstFmt = GL_UNSIGNED_BYTE;
+		dstFmt = D3DFMT(D3DFMT_A8R8G8B8);
 		{
 			int minw = std::min(bufw, w);
 			tmpTexBuf32.resize(std::max(bufw, w) * h);
@@ -1409,9 +1411,9 @@ void *TextureCache::DecodeTextureLevel(u8 format, u8 clutformat, int level, u32 
 	if (w != bufw) {
 		int pixelSize;
 		switch (dstFmt) {
-		case GL_UNSIGNED_SHORT_4_4_4_4:
-		case GL_UNSIGNED_SHORT_5_5_5_1:
-		case GL_UNSIGNED_SHORT_5_6_5:
+		case D3DFMT(D3DFMT_A4R4G4B4):
+		case D3DFMT(D3DFMT_A1R5G5B5):
+		case D3DFMT(D3DFMT_R5G6B5):
 			pixelSize = 2;
 			break;
 		default:
@@ -1439,13 +1441,13 @@ void *TextureCache::DecodeTextureLevel(u8 format, u8 clutformat, int level, u32 
 	return finalBuf;
 }
 
-void TextureCache::CheckAlpha(TexCacheEntry &entry, u32 *pixelData, GLenum dstFmt, int w, int h) {
+void TextureCache::CheckAlpha(TexCacheEntry &entry, u32 *pixelData, u32 dstFmt, int w, int h) {
 	// TODO: Could probably be optimized more.
 	u32 hitZeroAlpha = 0;
 	u32 hitSomeAlpha = 0;
 
 	switch (dstFmt) {
-	case GL_UNSIGNED_SHORT_4_4_4_4:
+	case D3DFMT(D3DFMT_A4R4G4B4):
 		{
 			const u32 *p = pixelData;
 			for (int i = 0; i < (w * h + 1) / 2; ++i) {
@@ -1458,7 +1460,7 @@ void TextureCache::CheckAlpha(TexCacheEntry &entry, u32 *pixelData, GLenum dstFm
 			}
 		}
 		break;
-	case GL_UNSIGNED_SHORT_5_5_5_1:
+	case D3DFMT(D3DFMT_A1R5G5B5):
 		{
 			const u32 *p = pixelData;
 			for (int i = 0; i < (w * h + 1) / 2; ++i) {
@@ -1467,7 +1469,7 @@ void TextureCache::CheckAlpha(TexCacheEntry &entry, u32 *pixelData, GLenum dstFm
 			}
 		}
 		break;
-	case GL_UNSIGNED_SHORT_5_6_5:
+	case D3DFMT(D3DFMT_R5G6B5):
 		{
 			// Never has any alpha.
 		}
@@ -1500,7 +1502,7 @@ void TextureCache::LoadTextureLevel(TexCacheEntry &entry, int level, bool replac
 	u32 texByteAlign = 1;
 
 	// TODO: Look into using BGRA for 32-bit textures when the GL_EXT_texture_format_BGRA8888 extension is available, as it's faster than RGBA on some chips.
-	GLenum dstFmt = 0;
+	u32 dstFmt = 0;
 
 	u8 clutformat = gstate.clutformat & 3;
 	void *finalBuf = DecodeTextureLevel(entry.format, clutformat, level, texByteAlign, dstFmt);
@@ -1516,8 +1518,8 @@ void TextureCache::LoadTextureLevel(TexCacheEntry &entry, int level, bool replac
 	// glPixelStorei(GL_UNPACK_ROW_LENGTH, bufw);
 	// glPixelStorei(GL_PACK_ROW_LENGTH, bufw);
 
-	glPixelStorei(GL_UNPACK_ALIGNMENT, texByteAlign);
-	glPixelStorei(GL_PACK_ALIGNMENT, texByteAlign);
+	//glPixelStorei(GL_UNPACK_ALIGNMENT, texByteAlign);
+	//glPixelStorei(GL_PACK_ALIGNMENT, texByteAlign);
 
 	// INFO_LOG(G3D, "Creating texture level %i/%i from %08x: %i x %i (stride: %i). fmt: %i", level, entry.maxLevel, texaddr, w, h, bufw, entry.format);
 
@@ -1537,6 +1539,7 @@ void TextureCache::LoadTextureLevel(TexCacheEntry &entry, int level, bool replac
 	else
 		entry.status |= TexCacheEntry::STATUS_ALPHA_UNKNOWN;
 
+#if 0
 	GLuint components = dstFmt == GL_UNSIGNED_SHORT_5_6_5 ? GL_RGB : GL_RGBA;
 
 	if (replaceImages) {
@@ -1551,11 +1554,14 @@ void TextureCache::LoadTextureLevel(TexCacheEntry &entry, int level, bool replac
 			glTexImage2D(GL_TEXTURE_2D, level, components, w, h, 0, components, dstFmt, pixelData);
 		}
 	}
+#endif
 }
 
 // Only used by Qt UI?
 bool TextureCache::DecodeTexture(u8* output, GPUgstate state)
 {
+	OutputDebugStringA("TextureCache::DecodeTexture : FixMe\r\n");
+#if 0
 	GPUgstate oldState = gstate;
 	gstate = state;
 
@@ -1634,5 +1640,6 @@ bool TextureCache::DecodeTexture(u8* output, GPUgstate state)
 	}
 
 	gstate = oldState;
+#endif
 	return true;
 }

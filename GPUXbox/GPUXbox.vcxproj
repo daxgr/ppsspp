@@ -111,8 +111,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>../common;..;../native;../native/ext/glew;</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_XBOX;_MBCS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
-      <FloatingPointModel>Fast</FloatingPointModel>
+      <PreprocessorDefinitions>BIG_ENDIAN;PPC;_XBOX;_MBCS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
@@ -204,39 +203,22 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\ext\xbrz\xbrz.h" />
-    <ClInclude Include="Directx9\DisplayListInterpreter.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Xbox 360'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="Directx9\FragmentShaderGenerator.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Xbox 360'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="Directx9\Framebuffer.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Xbox 360'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="Directx9\IndexGenerator.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Xbox 360'">true</ExcludedFromBuild>
-    </ClInclude>
+    <ClInclude Include="Directx9\DisplayListInterpreter.h" />
+    <ClInclude Include="Directx9\FragmentShaderGenerator.h" />
+    <ClInclude Include="Directx9\Framebuffer.h" />
+    <ClInclude Include="Directx9\helper\dx_state.h" />
+    <ClInclude Include="Directx9\helper\fbo.h" />
+    <ClInclude Include="Directx9\helper\global.h" />
+    <ClInclude Include="Directx9\IndexGenerator.h" />
     <ClInclude Include="Directx9\ShaderManager.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Xbox 360'">true</ExcludedFromBuild>
     </ClInclude>
-    <ClInclude Include="Directx9\StateMapping.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Xbox 360'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="Directx9\TextureCache.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Xbox 360'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="Directx9\TextureScaler.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Xbox 360'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="Directx9\TransformPipeline.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Xbox 360'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="Directx9\VertexDecoder.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Xbox 360'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="Directx9\VertexShaderGenerator.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Xbox 360'">true</ExcludedFromBuild>
-    </ClInclude>
+    <ClInclude Include="Directx9\StateMapping.h" />
+    <ClInclude Include="Directx9\TextureCache.h" />
+    <ClInclude Include="Directx9\TextureScaler.h" />
+    <ClInclude Include="Directx9\TransformPipeline.h" />
+    <ClInclude Include="Directx9\VertexDecoder.h" />
+    <ClInclude Include="Directx9\VertexShaderGenerator.h" />
     <ClInclude Include="ge_constants.h" />
     <ClInclude Include="GLES\DisplayListInterpreter.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Xbox 360'">true</ExcludedFromBuild>
@@ -280,39 +262,23 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\ext\xbrz\xbrz.cpp" />
-    <ClCompile Include="Directx9\DisplayListInterpreter.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Xbox 360'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="Directx9\FragmentShaderGenerator.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Xbox 360'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="Directx9\Framebuffer.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Xbox 360'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="Directx9\IndexGenerator.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Xbox 360'">true</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="Directx9\DisplayListInterpreter.cpp" />
+    <ClCompile Include="Directx9\FragmentShaderGenerator.cpp" />
+    <ClCompile Include="Directx9\Framebuffer.cpp" />
+    <ClCompile Include="Directx9\helper\dx_state.cpp" />
+    <ClCompile Include="Directx9\helper\fbo.cpp" />
+    <ClCompile Include="Directx9\helper\global.cpp" />
+    <ClCompile Include="Directx9\IndexGenerator.cpp" />
+    <ClCompile Include="Directx9\ShaderManager - Copie.cpp" />
     <ClCompile Include="Directx9\ShaderManager.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Xbox 360'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="Directx9\StateMapping.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Xbox 360'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="Directx9\TextureCache.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Xbox 360'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="Directx9\TextureScaler.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Xbox 360'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="Directx9\TransformPipeline.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Xbox 360'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="Directx9\VertexDecoder.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Xbox 360'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="Directx9\VertexShaderGenerator.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Xbox 360'">true</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="Directx9\StateMapping.cpp" />
+    <ClCompile Include="Directx9\TextureCache.cpp" />
+    <ClCompile Include="Directx9\TextureScaler.cpp" />
+    <ClCompile Include="Directx9\TransformPipeline.cpp" />
+    <ClCompile Include="Directx9\VertexDecoder.cpp" />
+    <ClCompile Include="Directx9\VertexShaderGenerator.cpp" />
     <ClCompile Include="GLES\DisplayListInterpreter.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Xbox 360'">true</ExcludedFromBuild>
     </ClCompile>

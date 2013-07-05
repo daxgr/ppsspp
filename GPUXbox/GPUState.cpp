@@ -17,10 +17,8 @@
 
 #include "ge_constants.h"
 #include "GPUState.h"
-#ifndef _XBOX
-#include "GLES/ShaderManager.h"
-#include "GLES/DisplayListInterpreter.h"
-#endif
+#include "Directx9/ShaderManager.h"
+#include "Directx9/DisplayListInterpreter.h"
 #include "Null/NullGpu.h"
 #include "../Core/CoreParameter.h"
 #include "../Core/System.h"
@@ -58,7 +56,7 @@ void InitGfxState()
 	for (int i = 0; i < 8; i++) {
 		memcpy(gstate.boneMatrix + i * 12, identity4x3, 12 * sizeof(float));
 	}
-
+/*
 	switch (PSP_CoreParameter().gpuCore) {
 	case GPU_NULL:
 		gpu = new NullGPU();
@@ -72,6 +70,9 @@ void InitGfxState()
 		gpu = new NullGPU();
 		break;
 	}
+	*/
+	gpu = new GLES_GPU();
+	//gpu = new NullGPU();
 }
 
 void ShutdownGfxState()

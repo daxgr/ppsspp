@@ -19,21 +19,15 @@
 #define SHADERLOG
 #endif
 
-#ifdef SHADERLOG
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#endif
-
 #include <map>
 
 #include "math/lin/matrix4x4.h"
 
 #include "Core/Reporting.h"
-#include "GPU/GPUState.h"
-#include "GPU/ge_constants.h"
-#include "GPU/GLES/ShaderManager.h"
-#include "GPU/GLES/TransformPipeline.h"
-#include "UI/OnScreenDisplay.h"
+#include "GPUXbox/GPUState.h"
+#include "GPUXbox/ge_constants.h"
+#include "GPUXbox/Directx9/ShaderManager.h"
+#include "GPUXbox/Directx9/TransformPipeline.h"
 
 Shader::Shader(const char *code, uint32_t shaderType, bool useHWTransform) : failed_(false), useHWTransform_(useHWTransform) {
 	source_ = code;
@@ -180,7 +174,7 @@ static void SetColorUniform3(int uniform, u32 color) {
 		((color & 0xFF00) >> 8) / 255.0f,
 		((color & 0xFF0000) >> 16) / 255.0f
 	};
-	glUniform3fv(uniform, 1, col);
+	//glUniform3fv(uniform, 1, col);
 }
 
 static void SetColorUniform3Alpha(int uniform, u32 color, u8 alpha) {
@@ -190,7 +184,7 @@ static void SetColorUniform3Alpha(int uniform, u32 color, u8 alpha) {
 		((color & 0xFF0000) >> 16) / 255.0f,
 		alpha/255.0f
 	};
-	glUniform4fv(uniform, 1, col);
+	//glUniform4fv(uniform, 1, col);
 }
 
 // This passes colors unscaled (e.g. 0 - 255 not 0 - 1.)
@@ -201,7 +195,7 @@ static void SetColorUniform3Alpha255(int uniform, u32 color, u8 alpha) {
 		(float)((color & 0xFF0000) >> 16),
 		(float)alpha
 	};
-	glUniform4fv(uniform, 1, col);
+	//glUniform4fv(uniform, 1, col);
 }
 
 static void SetColorUniform3ExtraFloat(int uniform, u32 color, float extra) {
@@ -211,7 +205,7 @@ static void SetColorUniform3ExtraFloat(int uniform, u32 color, float extra) {
 		((color & 0xFF0000) >> 16) / 255.0f,
 		extra
 	};
-	glUniform4fv(uniform, 1, col);
+	//glUniform4fv(uniform, 1, col);
 }
 
 static void ConvertMatrix4x3To4x4(const float *m4x3, float *m4x4) {
@@ -236,7 +230,7 @@ static void ConvertMatrix4x3To4x4(const float *m4x3, float *m4x4) {
 static void SetMatrix4x3(int uniform, const float *m4x3) {
 	float m4x4[16];
 	ConvertMatrix4x3To4x4(m4x3, m4x4);
-	glUniformMatrix4fv(uniform, 1, GL_FALSE, m4x4);
+	//glUniformMatrix4fv(uniform, 1, GL_FALSE, m4x4);
 }
 
 void LinkedShader::use() {

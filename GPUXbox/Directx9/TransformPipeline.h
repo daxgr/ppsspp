@@ -21,7 +21,6 @@
 
 #include "IndexGenerator.h"
 #include "VertexDecoder.h"
-#include "gfx/gl_lost_manager.h"
 
 class LinkedShader;
 class ShaderManager;
@@ -74,8 +73,8 @@ public:
 
 	Status status;
 
-	u32 vbo;
-	u32 ebo;
+	LPDIRECT3DVERTEXBUFFER9 vbo;
+	LPDIRECT3DINDEXBUFFER9 ebo;
 
 	// TODO: see if we can avoid having this full thing here.
 	DecVtxFormat decFmt;
@@ -94,7 +93,7 @@ public:
 
 
 // Handles transform, lighting and drawing.
-class TransformDrawEngine : public GfxResourceHolder {
+class TransformDrawEngine {
 public:
 	TransformDrawEngine();
 	virtual ~TransformDrawEngine();
@@ -114,7 +113,7 @@ public:
 	}
 	void InitDeviceObjects();
 	void DestroyDeviceObjects();
-	void GLLost();
+	void GLLost() {};
 
 	void DecimateTrackedVertexArrays();
 	void ClearTrackedVertexArrays();
@@ -169,9 +168,9 @@ private:
 
 	// Vertex buffer objects
 	// Element buffer objects
-	enum { NUM_VBOS = 128 };
-	GLuint vbo_[NUM_VBOS];
-	GLuint ebo_[NUM_VBOS];
+	enum { NUM_VBOS = 2 };
+	LPDIRECT3DVERTEXBUFFER9 vbo_[NUM_VBOS];
+	LPDIRECT3DINDEXBUFFER9 ebo_[NUM_VBOS];
 	int curVbo_;
 
 	// Other

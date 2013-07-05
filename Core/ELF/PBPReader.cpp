@@ -20,6 +20,7 @@
 #include <cstring>
 
 #include "Common/Log.h"
+#include "Common/Common.h"
 #include "Core/ELF/PBPReader.h"
 
 PBPReader::PBPReader(const char *filename) : header_() {
@@ -37,6 +38,13 @@ PBPReader::PBPReader(const char *filename) : header_() {
 		file_ = 0;
 		return;
 	}
+#ifdef PPC
+	// Swap header
+	header_.version = LE_32(header_.version);
+	for(int i=0; i < 8; i++) {
+		header_.offsets[i] = LE_32(header_.offsets[i]);
+	}
+#endif
 
 	INFO_LOG(LOADER, "Loading PBP, version = %08x", header_.version);
 }

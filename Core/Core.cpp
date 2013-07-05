@@ -110,6 +110,10 @@ void UpdateScreenScale() {
 	pixel_in_dps = (float)pixel_xres / dp_xres;
 }
 
+#ifdef _XBOX
+void GL_SwapBuffers();
+#endif
+
 void Core_RunLoop()
 {
 	while (!coreState) {
@@ -145,6 +149,8 @@ void Core_RunLoop()
 		} else if (!Core_IsStepping()) {
 			GL_SwapBuffers();
 		}
+#else
+		GL_SwapBuffers();
 #endif
 	}
 }

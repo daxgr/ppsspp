@@ -19,6 +19,11 @@
 #include "StubHost.h"
 #include "WindowsHeadlessHost.h"
 
+
+// Bad !!
+extern LPDIRECT3DDEVICE9 pD3Ddevice;
+void DirectxInit();
+
 // 1 megabyte
 #define MB	(1024*1024)
 
@@ -78,9 +83,13 @@ public:
 	}
 };
 
+
 struct InputState;
 // Temporary hack around annoying linking error.
-void GL_SwapBuffers() { }
+void GL_SwapBuffers() { 
+	pD3Ddevice->Present(0, 0, 0, 0);
+	DebugBreak();
+}
 void NativeUpdate(InputState &input_state) { }
 void NativeRender() { }
 
@@ -129,7 +138,9 @@ int main(int argc, const char* argv[])
 	displaymem();
 
 	useJit = false;
-	bootFilename = "game:\\cube.elf";
+	//bootFilename = "game:\\cube.elf";
+	//bootFilename = "game:\\string.prx";
+	bootFilename = "game:\\PSP\\GAME\\PSPRICK\\EBOOT.PBP";
 
 	if (!bootFilename)
 	{
@@ -137,7 +148,9 @@ int main(int argc, const char* argv[])
 		return 1;
 	}
 
-	HeadlessHost *headlessHost = useGraphics ? new HEADLESSHOST_CLASS() : new HeadlessHost();
+	DirectxInit();
+
+	HeadlessHost *headlessHost = new HEADLESSHOST_CLASS();
 	host = headlessHost;
 
 	std::string error_string;
@@ -182,7 +195,7 @@ int main(int argc, const char* argv[])
 	g_Config.sReportHost = "";
 	g_Config.bAutoSaveSymbolMap = false;
 	g_Config.bBufferedRendering = true;
-	g_Config.bHardwareTransform = true;
+	g_Config.bHardwareTransform = false;
 #ifdef USING_GLES2
 	g_Config.iAnisotropyLevel = 0;
 #else

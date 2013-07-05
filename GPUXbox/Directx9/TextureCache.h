@@ -18,9 +18,10 @@
 #pragma once
 
 #include "../Globals.h"
-#include "gfx_es2/fbo.h"
-#include "GPU/GPUInterface.h"
-#include "GPU/GPUState.h"
+#include "helper/global.h"
+#include "helper/fbo.h"
+#include "GPUXbox/GPUInterface.h"
+#include "GPUXbox/GPUState.h"
 #include "TextureScaler.h"
 
 struct VirtualFramebuffer;
@@ -83,7 +84,7 @@ private:
 		u32 framesUntilNextFullHash;
 		u8 format;
 		u16 dim;
-		u32 texture;  //GLuint
+		LPDIRECT3DTEXTURE9 texture;  //GLuint
 		int invalidHint;
 		u32 fullhash;
 		u32 cluthash;
@@ -102,11 +103,11 @@ private:
 
 	void Decimate();  // Run this once per frame to get rid of old textures.
 	void *UnswizzleFromMem(u32 texaddr, u32 bufw, u32 bytesPerPixel, u32 level);
-	void *readIndexedTex(int level, u32 texaddr, int bytesPerIndex, GLuint dstFmt);
+	void *readIndexedTex(int level, u32 texaddr, int bytesPerIndex, u32 dstFmt);
 	void UpdateSamplingParams(TexCacheEntry &entry, bool force);
 	void LoadTextureLevel(TexCacheEntry &entry, int level, bool replaceImages);
-	void *DecodeTextureLevel(u8 format, u8 clutformat, int level, u32 &texByteAlign, GLenum &dstFmt);
-	void CheckAlpha(TexCacheEntry &entry, u32 *pixelData, GLenum dstFmt, int w, int h);
+	void *DecodeTextureLevel(u8 format, u8 clutformat, int level, u32 &texByteAlign, u32 &dstFmt);
+	void CheckAlpha(TexCacheEntry &entry, u32 *pixelData, u32 dstFmt, int w, int h);
 	template <typename T>
 	const T *GetCurrentClut();
 	u32 GetCurrentClutHash();
@@ -137,7 +138,7 @@ private:
 	bool clutAlphaLinear_;
 	u16 clutAlphaLinearColor_;
 
-	u32 lastBoundTexture;
+	LPDIRECT3DTEXTURE9 lastBoundTexture;
 	float maxAnisotropyLevel;
 };
 

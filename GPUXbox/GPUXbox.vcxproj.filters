@@ -16,6 +16,9 @@
     <Filter Include="Directx9">
       <UniqueIdentifier>{eb2a1d3d-24c7-4df8-b3cb-79a4b9734d70}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Directx9\helper">
+      <UniqueIdentifier>{862f23b4-2c1b-4d16-9450-caecbb77f276}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ge_constants.h">
@@ -104,6 +107,15 @@
     <ClInclude Include="Directx9\VertexShaderGenerator.h">
       <Filter>Directx9</Filter>
     </ClInclude>
+    <ClInclude Include="Directx9\helper\fbo.h">
+      <Filter>Directx9\helper</Filter>
+    </ClInclude>
+    <ClInclude Include="Directx9\helper\global.h">
+      <Filter>Directx9\helper</Filter>
+    </ClInclude>
+    <ClInclude Include="Directx9\helper\dx_state.h">
+      <Filter>Directx9\helper</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Math3D.cpp">
@@ -184,6 +196,18 @@
       <Filter>Directx9</Filter>
     </ClCompile>
     <ClCompile Include="Directx9\VertexShaderGenerator.cpp">
+      <Filter>Directx9</Filter>
+    </ClCompile>
+    <ClCompile Include="Directx9\helper\fbo.cpp">
+      <Filter>Directx9\helper</Filter>
+    </ClCompile>
+    <ClCompile Include="Directx9\helper\dx_state.cpp">
+      <Filter>Directx9\helper</Filter>
+    </ClCompile>
+    <ClCompile Include="Directx9\helper\global.cpp">
+      <Filter>Directx9\helper</Filter>
+    </ClCompile>
+    <ClCompile Include="Directx9\ShaderManager - Copie.cpp">
       <Filter>Directx9</Filter>
     </ClCompile>
   </ItemGroup>

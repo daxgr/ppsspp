@@ -20,9 +20,6 @@
     <ClCompile Include="..\Headless.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\WindowsHeadlessHost.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\native\file\ini_file.cpp">
       <Filter>native%28small%29</Filter>
     </ClCompile>
@@ -54,6 +51,21 @@
       <Filter>native%28small%29</Filter>
     </ClCompile>
     <ClCompile Include="..\display_xbox.cpp">
+      <Filter>native%28small%29</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\native\ext\cityhash\city.cpp">
+      <Filter>native%28small%29</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\native\thread\threadpool.cpp">
+      <Filter>native%28small%29</Filter>
+    </ClCompile>
+    <ClCompile Include="..\XboxHost.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\native\math\lin\matrix4x4.cpp">
+      <Filter>native%28small%29</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\native\math\lin\quat.cpp">
       <Filter>native%28small%29</Filter>
     </ClCompile>
   </ItemGroup>
@@ -95,6 +107,15 @@
       <Filter>native%28small%29</Filter>
     </ClInclude>
     <ClInclude Include="..\..\native\ext\stb_image\stb_image.h">
+      <Filter>native%28small%29</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\native\ext\cityhash\citycrc.h">
+      <Filter>native%28small%29</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\native\ext\cityhash\city.h">
+      <Filter>native%28small%29</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\native\thread\threadpool.h">
       <Filter>native%28small%29</Filter>
     </ClInclude>
   </ItemGroup>

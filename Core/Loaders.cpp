@@ -83,8 +83,14 @@ EmuFileType Identify_File(std::string &filename)
 	if (id == 'PBP\x00') {
 		fseek(f, 0x24, SEEK_SET);
 		fread(&psar_offset, 4, 1, f);
+#ifdef PPC
+		psar_offset = LE_32(psar_offset);
+#endif
 		fseek(f, psar_offset, SEEK_SET);
 		fread(&psar_id, 4, 1, f);
+#ifdef PPC
+		psar_offset = LE_32(psar_id);
+#endif
 	}
 
 	fclose(f);

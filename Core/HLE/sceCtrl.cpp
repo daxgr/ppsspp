@@ -179,7 +179,11 @@ int __CtrlReadSingleBuffer(u32 ctrlDataPtr, bool negative)
 
 		if (negative)
 			data.buttons = ~data.buttons;
-
+#ifdef PPC
+		// bswap
+		data.buttons = LE_32(data.buttons);
+		data.frame = LE_32(data.frame);
+#endif
 		Memory::WriteStruct(ctrlDataPtr, &data);
 		return 1;
 	}
@@ -453,8 +457,20 @@ u32 sceCtrlPeekLatch(u32 latchDataPtr)
 {
 	DEBUG_LOG(HLE, "sceCtrlPeekLatch(%08x)", latchDataPtr);
 
-	if (Memory::IsValidAddress(latchDataPtr))
+	if (Memory::IsValidAddress(latchDataPtr)) {
+#ifdef PPC
+		CtrlLatch tmp = latch;
+		// bswap
+		tmp.btnBreak = LE_32(tmp.btnBreak);
+		tmp.btnMake = LE_32(tmp.btnMake);
+		tmp.btnPress = LE_32(tmp.btnPress);
+		tmp.btnRelease = LE_32(tmp.btnRelease);
+		
+		Memory::WriteStruct(latchDataPtr, &tmp);
+#else		
 		Memory::WriteStruct(latchDataPtr, &latch);
+#endif
+	}
 
 	return ctrlLatchBufs;
 }
@@ -463,8 +479,20 @@ u32 sceCtrlReadLatch(u32 latchDataPtr)
 {
 	DEBUG_LOG(HLE, "sceCtrlReadLatch(%08x)", latchDataPtr);
 
-	if (Memory::IsValidAddress(latchDataPtr))
+	if (Memory::IsValidAddress(latchDataPtr)) {
+#ifdef PPC
+		CtrlLatch tmp = latch;
+		// bswap
+		tmp.btnBreak = LE_32(tmp.btnBreak);
+		tmp.btnMake = LE_32(tmp.btnMake);
+		tmp.btnPress = LE_32(tmp.btnPress);
+		tmp.btnRelease = LE_32(tmp.btnRelease);
+		
+		Memory::WriteStruct(latchDataPtr, &tmp);
+#else		
 		Memory::WriteStruct(latchDataPtr, &latch);
+#endif
+	}
 
 	return __CtrlResetLatch();
 }

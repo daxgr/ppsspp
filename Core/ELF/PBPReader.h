@@ -60,5 +60,5 @@ public:
 private:
 	FILE *file_;
 	size_t fileSize_;
-	const PBPHeader header_;
+	PBPHeader header_;
 };

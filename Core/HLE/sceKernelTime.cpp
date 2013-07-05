@@ -164,6 +164,10 @@ u32 sceKernelLibcGettimeofday(u32 timeAddr, u32 tzAddr)
 	{
 		timeval *tv = (timeval *)Memory::GetPointer(timeAddr);
 		__RtcTimeOfDay(tv);
+#ifdef PPC
+		tv->tv_sec = LE_32(tv->tv_sec);
+		tv->tv_usec = LE_32(tv->tv_usec);
+#endif
 	}
 
 	DEBUG_LOG(HLE,"sceKernelLibcGettimeofday(%08x, %08x)", timeAddr, tzAddr);
